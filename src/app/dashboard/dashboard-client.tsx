@@ -48,24 +48,26 @@ export default function DashboardClient({ role, name }: { role?: string; name?: 
     const currentRole = searchParams.get('role');
     const currentName = searchParams.get('name');
 
+    // Wait until user loading is complete before doing anything
     if (isUserLoading) {
-      return; // Wait until user status is determined
+      return;
     }
 
-    // After a Google sign-in redirect, the user object will be available.
-    // The role might not be in the URL yet.
-    if (user && currentRole !== 'dealer') {
+    // Scenario 1: User has just logged in (user object is present), but role isn't in URL yet.
+    // This happens right after the redirect from Google sign-in.
+    // Or, user is logged in and visits /dashboard without a role.
+    if (user && !currentRole) {
       router.replace('/dashboard?role=dealer');
       return;
     }
 
-    // If trying to access dealer route without being logged in, redirect to home
+    // Scenario 2: A non-logged-in user tries to access the dealer dashboard.
     if (currentRole === 'dealer' && !user) {
-      router.push('/');
+      router.replace('/');
       return;
     }
     
-    // Handle player joining
+    // Scenario 3: A player joins the game.
     if (currentRole === 'player' && currentName) {
       const playerExists = getPlayerByName(currentName);
       if (!playerExists) {
@@ -73,7 +75,7 @@ export default function DashboardClient({ role, name }: { role?: string; name?: 
       }
     }
     
-  }, [role, name, user, isUserLoading, router, addPlayer, getPlayerByName, searchParams]);
+  }, [user, isUserLoading, router, addPlayer, getPlayerByName, searchParams]);
 
   if (isUserLoading) {
     return <DashboardSkeleton />;
@@ -89,6 +91,7 @@ export default function DashboardClient({ role, name }: { role?: string; name?: 
     return <PlayerView playerName={name} />;
   }
 
-  // Fallback while redirecting or for invalid states
+  // Fallback while redirecting or for invalid states.
+  // This will show while the useEffect is determining the correct route.
   return <DashboardSkeleton />;
 }
