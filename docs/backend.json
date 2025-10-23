@@ -5,27 +5,23 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a user of the Rebuy Tracker application.",
+      "description": "Represents a user of the Rebuy Tracker application, typically a dealer.",
       "properties": {
-        "id": {
+        "uid": {
           "type": "string",
-          "description": "Unique identifier for the User entity."
+          "description": "The Firebase Authentication unique user ID."
         },
-        "username": {
+        "displayName": {
           "type": "string",
-          "description": "The user's username."
+          "description": "The user's display name."
         },
-        "role": {
+        "email": {
           "type": "string",
-          "description": "The user's role, either 'Dealer' or 'Player'.",
-          "format": "string"
+          "format": "email",
+          "description": "The user's email address."
         }
       },
-      "required": [
-        "id",
-        "username",
-        "role"
-      ]
+      "required": ["uid", "displayName", "email"]
     },
     "Player": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -33,86 +29,24 @@
       "type": "object",
       "description": "Represents a player in the poker game.",
       "properties": {
-        "id": {
+        "name": {
           "type": "string",
-          "description": "Unique identifier for the Player entity."
+          "description": "The player's chosen name for the game."
         },
-        "userId": {
-          "type": "string",
-          "description": "Reference to User. (Relationship: User 1:1 Player)"
-        },
-        "initialBuyIn": {
+        "rebuys": {
           "type": "number",
-          "description": "The initial buy-in amount for the player."
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "initialBuyIn"
-      ]
-    },
-    "Rebuy": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Rebuy",
-      "type": "object",
-      "description": "Represents a re-buy event for a player.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Rebuy entity."
+          "description": "The number of re-buys the player has made, including the initial buy-in."
         },
-        "playerId": {
-          "type": "string",
-          "description": "Reference to Player. (Relationship: Player 1:N Rebuy)"
-        },
-        "amount": {
+        "blackCoins": {
           "type": "number",
-          "description": "The amount of the re-buy."
-        },
-        "timestamp": {
-          "type": "string",
-          "description": "The timestamp of when the re-buy occurred.",
-          "format": "date-time"
-        },
-        "dealerId": {
-          "type": "string",
-          "description": "Reference to Dealer who approved the rebuy. (Relationship: Dealer 1:N Rebuy)"
+          "description": "The number of black coins the player has at the end of the game."
         }
       },
-      "required": [
-        "id",
-        "playerId",
-        "amount",
-        "timestamp",
-        "dealerId"
-      ]
-    },
-    "Dealer": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Dealer",
-      "type": "object",
-      "description": "Represents a dealer in the poker game.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Dealer entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to User. (Relationship: User 1:1 Dealer)"
-        }
-      },
-      "required": [
-        "id",
-        "userId"
-      ]
+      "required": ["name", "rebuys", "blackCoins"]
     }
   },
   "auth": {
-    "providers": [
-      "google.com"
-    ]
+    "providers": ["google.com"]
   },
   "firestore": {
     "structure": [
@@ -120,71 +54,18 @@
         "path": "/users/{userId}",
         "definition": {
           "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Stores user profile information. Only the authenticated user can read/write their own document.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            }
-          ]
+          "schema": { "$ref": "#/backend/entities/User" },
+          "description": "Stores dealer profile information. Only the authenticated user can read/write their own document."
         }
       },
       {
         "path": "/players/{playerId}",
         "definition": {
           "entityName": "Player",
-          "schema": {
-            "$ref": "#/backend/entities/Player"
-          },
-          "description": "Stores player information, linked to a specific user.",
-          "params": [
-            {
-              "name": "playerId",
-              "description": "The unique identifier of the player."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/dealers/{dealerId}",
-        "definition": {
-          "entityName": "Dealer",
-          "schema": {
-            "$ref": "#/backend/entities/Dealer"
-          },
-          "description": "Stores dealer information, linked to a specific user.",
-          "params": [
-            {
-              "name": "dealerId",
-              "description": "The unique identifier of the dealer."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/players/{playerId}/rebuys/{rebuyId}",
-        "definition": {
-          "entityName": "Rebuy",
-          "schema": {
-            "$ref": "#/backend/entities/Rebuy"
-          },
-          "description": "Stores rebuy information for a specific player. Only Dealers can create/delete these. Includes denormalized 'dealerId' for authorization independence.",
-          "params": [
-            {
-              "name": "playerId",
-              "description": "The unique identifier of the player."
-            },
-            {
-              "name": "rebuyId",
-              "description": "The unique identifier of the rebuy."
-            }
-          ]
+          "schema": { "$ref": "#/backend/entities/Player" },
+          "description": "Stores information about each player in the game. Dealers can create, update, and delete player documents."
         }
       }
-    ],
-    "reasoning": "The Firestore data structure is designed to support the Rebuy Tracker application, focusing on secure user authentication and role-based access control for managing players and rebuys. It ensures Authorization Independence, addresses QAPs, and simplifies security rules. The database structure includes separate collections for users, players, dealers and rebuy. The `users` collection stores basic user information including their roles (`Dealer` or `Player`). `players` and `dealers` collections store corresponding data for player and dealer. The `rebuys` collection store information for each rebuy. For authorization independence, each `Rebuy` document denormalizes the `dealerId` to explicitly indicate which dealer approved the rebuy, which facilitates Dealer role-based access control. Additionally, authorization is simplified by storing `Rebuy` documents under the `/players/{playerId}/rebuys/{rebuyId}` path, establishing ownership and simplifying rules based on the logged-in user's UID."
+    ]
   }
 }

@@ -5,17 +5,69 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { PlayerList } from "./player-list";
 import { Users } from "lucide-react";
+import { Skeleton } from "../ui/skeleton";
 
 interface PlayerViewProps {
   playerName: string;
 }
 
+function PlayerViewSkeleton() {
+  return (
+    <div className="space-y-8">
+      <Skeleton className="h-10 w-1/2" />
+      <Card className="bg-gradient-to-br from-primary/80 to-primary text-primary-foreground">
+        <CardHeader>
+          <CardTitle>Your Status</CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-between">
+          <div className="flex gap-8">
+            <div>
+              <p className="text-sm">Total Buy-ins</p>
+              <Skeleton className="h-14 w-12 mt-1" />
+            </div>
+            <div>
+              <p className="text-sm">End Count</p>
+              <Skeleton className="h-14 w-12 mt-1" />
+            </div>
+          </div>
+          <Skeleton className="h-12 w-36" />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users /> Table Standings
+          </CardTitle>
+          <CardDescription>
+            See how you stack up against the competition.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-48 w-full" />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export function PlayerView({ playerName }: PlayerViewProps) {
-  const { getPlayerByName, addRebuy } = useGame();
+  const { getPlayerByName, addRebuy, isLoading } = useGame();
+  
+  if (isLoading) {
+    return <PlayerViewSkeleton />;
+  }
+
   const player = getPlayerByName(playerName);
 
   if (!player) {
-    return <div className="text-center">Loading player data...</div>;
+    return (
+        <div className="text-center py-10">
+          <h2 className="text-2xl font-semibold">Waiting for the dealer to add you to the game...</h2>
+          <p className="text-muted-foreground mt-2">
+            Once you're added, your stats will appear here.
+          </p>
+      </div>
+    )
   }
   
   const totalBuyins = player.rebuys;

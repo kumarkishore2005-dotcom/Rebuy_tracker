@@ -13,14 +13,46 @@ import { Button } from "@/components/ui/button";
 import { MinusCircle, PlusCircle, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "../ui/input";
+import { Skeleton } from "../ui/skeleton";
 
 interface PlayerListProps {
   isDealer?: boolean;
   highlightPlayerName?: string;
 }
 
+function PlayerListSkeleton() {
+    return (
+      <div className="rounded-lg border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Player</TableHead>
+              <TableHead className="text-center">Buy-ins</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {[...Array(3)].map((_, i) => (
+              <TableRow key={i}>
+                <TableCell>
+                  <Skeleton className="h-6 w-24" />
+                </TableCell>
+                <TableCell className="text-center">
+                  <Skeleton className="h-6 w-8 mx-auto" />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  }
+
 export function PlayerList({ isDealer = false, highlightPlayerName }: PlayerListProps) {
-  const { players, addRebuy, removeRebuy, updateBlackCoins } = useGame();
+  const { players, addRebuy, removeRebuy, updateBlackCoins, isLoading } = useGame();
+
+  if (isLoading) {
+    return <PlayerListSkeleton />;
+  }
 
   return (
     <div className="rounded-lg border">
