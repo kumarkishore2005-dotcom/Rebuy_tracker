@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlayerList } from "./player-list";
-import { Users } from "lucide-react";
+import { DollarSign, Users } from "lucide-react";
 
 function AddPlayerForm() {
     const [newPlayerName, setNewPlayerName] = useState("");
@@ -40,11 +40,31 @@ function AddPlayerForm() {
     );
   }
 
+function TotalBuyIns() {
+    const { players } = useGame();
+    const totalBuyIns = players.reduce((total, player) => total + player.rebuys, 0);
+
+    return (
+        <Card className="bg-secondary">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><DollarSign /> Total Buy-ins</CardTitle>
+                <CardDescription>The total number of buy-ins from all players.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <p className="text-5xl font-bold">{totalBuyIns}</p>
+            </CardContent>
+        </Card>
+    );
+}
+
 export function DealerView() {
   return (
     <div className="space-y-8">
         <h1 className="text-4xl font-bold font-headline">Dealer Dashboard</h1>
-        <AddPlayerForm />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <AddPlayerForm />
+          <TotalBuyIns />
+        </div>
       
         <Card>
             <CardHeader>
