@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useMemo } from "react";
 import { useGame } from "@/contexts/game-context";
 import {
   Table,
@@ -52,6 +53,10 @@ function PlayerListSkeleton() {
 export function PlayerList({ isDealer = false, highlightPlayerName }: PlayerListProps) {
   const { players, addRebuy, removeRebuy, deletePlayer, updateBlackCoins, isLoading } = useGame();
 
+  const sortedPlayers = useMemo(() => {
+    return [...players].sort((a, b) => b.rebuys - a.rebuys);
+  }, [players]);
+
   if (isLoading) {
     return <PlayerListSkeleton />;
   }
@@ -69,10 +74,8 @@ export function PlayerList({ isDealer = false, highlightPlayerName }: PlayerList
           </TableRow>
         </TableHeader>
         <TableBody>
-          {players.length > 0 ? (
-            players
-              .slice() // Create a shallow copy to sort
-              .sort((a, b) => b.rebuys - a.rebuys) // Sort by rebuys descending
+          {sortedPlayers.length > 0 ? (
+            sortedPlayers
               .map((player) => (
                 <TableRow key={player.id} className={cn(player.name === highlightPlayerName && "bg-accent/50")}>
                   <TableCell className="font-medium">
