@@ -5,7 +5,6 @@ import { DealerView } from '@/components/dashboard/dealer-view';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { GameProvider } from '@/contexts/game-context';
 
 const DEALER_PASSWORD = 'test1234';
 
@@ -66,9 +65,5 @@ function DealerPageContent() {
 }
 
 export default function DealerPage() {
-    return (
-        <GameProvider>
-            <DealerPageContent />
-        </GameProvider>
-    )
+    return <DealerPageContent />;
 }
