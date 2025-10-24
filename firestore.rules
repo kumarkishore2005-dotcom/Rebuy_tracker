@@ -1,44 +1,44 @@
 /**
- * @fileOverview Firestore Security Rules for the poker game application.
+ * @fileoverview Firestore Security Rules for the poker game application.
  *
  * Core Philosophy:
- * This ruleset implements a basic access control model. Players can create their own player documents.
+ * This ruleset adopts a permissive security posture, allowing any authenticated user to create, read, and list player documents.
  *
  * Data Structure:
- * The primary data is stored in the `/players/{playerId}` collection.
+ * All player data is stored in the top-level `/players/{playerId}` collection.
  *
  * Key Security Decisions:
- *  - Players can only create their own player documents, where {playerId} matches their `request.auth.uid`.
- *  - Read access (get, list) to player documents is open to everyone since the game is public.
- *  - Updates and Deletes are forbidden.
- *
- * Denormalization for Authorization:
- *  - To simplify rules and avoid `get()` calls, the `playerId` from the path is used directly for authorization checks.
+ * - Player listing is public, meaning any logged-in user can see all players.
+ * - Schema validation is relaxed for prototyping purposes.
+ * - Player creation is allowed for any authenticated user.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Grants read access to all players and allows authenticated users to create their own player document. Updates/Deletes are forbidden.
+     * @description Allows any authenticated user to create, read, update, and delete player documents.
      * @path /players/{playerId}
-     * @allow (create) User 'BKd0tuUHi1h2pR59Ys9Fwbk4VDA2' can create a player document at /players/BKd0tuUHi1h2pR59Ys9Fwbk4VDA2.
-     * @deny (create) User 'BKd0tuUHi1h2pR59Ys9Fwbk4VDA2' cannot create a player document at /players/differentPlayerId.
-     * @principle Allows self-creation of player documents and public read access.
+     * @allow (create) User with any valid auth can create a player document.
+     * @allow (get) Any authenticated user can read any player document.
+     * @allow (list) Any authenticated user can list player documents.
+     * @allow (update) Any authenticated user can update any player document.
+     * @allow (delete) Any authenticated user can delete any player document.
+     * @deny (create) Unauthenticated users cannot create player documents.
+     * @deny (update) Unauthenticated users cannot update player documents.
+     * @deny (delete) Unauthenticated users cannot delete player documents.
+     * @principle Allows any authenticated user to perform all operations on player documents.
      */
     match /players/{playerId} {
-      allow get, list: if true;
-      allow create: if isSignedIn() && isOwner(playerId);
-      allow update, delete: if false;
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
 
-    // --- Helper functions ---
+    // Helper function to check if the user is signed in.
     function isSignedIn() {
       return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return request.auth.uid == userId;
     }
   }
 }
