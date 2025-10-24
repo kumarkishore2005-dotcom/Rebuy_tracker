@@ -8,7 +8,7 @@ export default function DashboardPage({
 }) {
   return (
     <Suspense>
-      <DashboardClient role={searchParams.role} name={searchParams.name} />
+      <DashboardClient role={searchParams?.role} name={searchParams?.name} />
     </Suspense>
   );
 }
