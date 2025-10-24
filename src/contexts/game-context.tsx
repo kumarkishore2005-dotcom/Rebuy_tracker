@@ -19,6 +19,7 @@ const LOCAL_STORAGE_KEY = 'rebuy-tracker-game-state';
 // --- Context ---
 interface GameContextType {
   players: Player[];
+  lastUpdated: string | null;
   isLoading: boolean;
   addPlayer: (name: string) => void;
   deletePlayer: (playerId: string) => void;
@@ -33,16 +34,24 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
 // --- Provider ---
 export function GameProvider({ children }: { children: ReactNode }) {
   const [players, setPlayers] = useState<Player[]>([]);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   // Unified function to update state and localStorage
   const setGameState = useCallback((newPlayers: Player[] | ((prevState: Player[]) => Player[])) => {
+    const timestamp = new Date().toISOString();
+    setLastUpdated(timestamp);
+
     setPlayers(prevState => {
         const updatedPlayers = typeof newPlayers === 'function' ? newPlayers(prevState) : newPlayers;
         try {
           if (typeof window !== 'undefined') {
-            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ players: updatedPlayers }));
+            const stateToSave = {
+                players: updatedPlayers,
+                lastUpdated: timestamp,
+            }
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
           }
         } catch (error) {
           console.error('Failed to save state to localStorage', error);
@@ -59,10 +68,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
       if (savedState) {
         const parsedState = JSON.parse(savedState);
         setPlayers(parsedState.players || []);
+        setLastUpdated(parsedState.lastUpdated || null);
       }
     } catch (error) {
       console.error('Failed to load state from localStorage', error);
       setPlayers([]);
+      setLastUpdated(null);
     }
     setIsLoading(false);
   }, []);
@@ -73,8 +84,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
       if (event.key === LOCAL_STORAGE_KEY && event.newValue) {
         try {
           const newState = JSON.parse(event.newValue);
-          if (newState && newState.players) {
-            setPlayers(newState.players);
+          const localState = localStorage.getItem(LOCAL_STORAGE_KEY);
+          if (localState && event.newValue !== localState) {
+            if (newState && newState.players) {
+              setPlayers(newState.players);
+              setLastUpdated(newState.lastUpdated || null);
+            }
           }
         } catch (error) {
             console.error("Failed to parse state from storage event", error);
@@ -199,6 +214,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       players,
+      lastUpdated,
       isLoading,
       addPlayer,
       deletePlayer,
@@ -209,6 +225,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }),
     [
       players,
+      lastUpdated,
       isLoading,
       addPlayer,
       deletePlayer,

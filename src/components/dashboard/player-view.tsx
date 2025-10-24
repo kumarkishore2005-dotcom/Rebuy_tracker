@@ -1,14 +1,28 @@
+
 "use client";
 
 import { useGame } from "@/contexts/game-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlayerList } from "./player-list";
-import { Users } from "lucide-react";
+import { Users, Clock } from "lucide-react";
 import { Skeleton } from "../ui/skeleton";
 
 interface PlayerViewProps {
   playerName: string;
+}
+
+function SyncTest() {
+    const { lastUpdated } = useGame();
+    const formattedTime = lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : 'N/A';
+    return (
+        <div className="fixed bottom-4 right-4 z-50">
+            <div className="flex items-center gap-2 rounded-full bg-muted px-4 py-2 text-sm font-medium text-muted-foreground shadow-lg">
+                <Clock className="h-5 w-5 text-primary" />
+                <span>Last Sync: <strong>{formattedTime}</strong></span>
+            </div>
+        </div>
+    )
 }
 
 function PlayerViewSkeleton() {
@@ -111,6 +125,7 @@ export function PlayerView({ playerName }: PlayerViewProps) {
           <PlayerList highlightPlayerName={playerName} />
         </CardContent>
       </Card>
+      <SyncTest />
     </div>
   );
 }

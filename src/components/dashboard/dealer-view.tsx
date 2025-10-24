@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -6,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlayerList } from "./player-list";
-import { DollarSign, Users } from "lucide-react";
+import { DollarSign, Users, Clock } from "lucide-react";
 
 function AddPlayerForm() {
     const [newPlayerName, setNewPlayerName] = useState("");
@@ -57,6 +58,19 @@ function TotalBuyIns() {
     );
 }
 
+function SyncTest() {
+    const { lastUpdated } = useGame();
+    const formattedTime = lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : 'N/A';
+    return (
+        <div className="fixed bottom-4 right-4 z-50">
+            <div className="flex items-center gap-2 rounded-full bg-muted px-4 py-2 text-sm font-medium text-muted-foreground shadow-lg">
+                <Clock className="h-5 w-5 text-primary" />
+                <span>Last Sync: <strong>{formattedTime}</strong></span>
+            </div>
+        </div>
+    )
+}
+
 export function DealerView() {
   return (
     <div className="space-y-8">
@@ -75,6 +89,7 @@ export function DealerView() {
                 <PlayerList isDealer={true} />
             </CardContent>
         </Card>
+        <SyncTest />
     </div>
   );
 }
