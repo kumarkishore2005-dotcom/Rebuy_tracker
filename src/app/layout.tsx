@@ -1,5 +1,4 @@
 
-'use client';
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
@@ -10,14 +9,10 @@ import { GameProvider } from "@/contexts/game-context";
 const fontBody = Inter({ subsets: ["latin"], variable: "--font-body" });
 const fontHeadline = Space_Grotesk({ subsets: ["latin"], variable: "--font-headline" });
 
-// Note: Metadata export is not supported in client components.
-// If you need to set metadata, consider moving it to a server component parent layout
-// or handle it on a per-page basis. For now, it's commented out to allow 'use client'.
-//
-// export const metadata: Metadata = {
-//   title: "Rebuy Tracker",
-//   description: "Track poker re-buys with ease.",
-// };
+export const metadata: Metadata = {
+  title: "Rebuy Tracker",
+  description: "Track poker re-buys with ease.",
+};
 
 export default function RootLayout({
   children,
