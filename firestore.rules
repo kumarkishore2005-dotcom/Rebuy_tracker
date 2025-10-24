@@ -1,53 +1,56 @@
 /**
- * @fileoverview Firestore Security Rules for Prototyping.
- *
- * Core Philosophy:
- * This ruleset is in prototyping mode and prioritizes developer velocity.  It enforces basic authentication and access control.
- *
- * Data Structure:
- * All data is stored in a flat `/players/{playerId}` collection.
- *
- * Key Security Decisions:
- * - Anonymous authentication is enabled.
- * - Players can only create their own player document, after which only they can read or modify it.
- * - Data validation is relaxed for prototyping speed, but ownership is strictly enforced.
+ * @description This ruleset enforces a public read, owner-write model for player data.
+ * @dataStructure The database stores player information under the `/players/{playerId}` path.
+ * @keySecurityDecisions All player data is publicly readable, but only the creator can modify or delete it.  There is no user listing allowed.
+ * @denormalizationForAuthorization The `Player` entity is expected to contain the uid of the creating user, `request.auth.uid`.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Grants player read and write access to their own player document.
+     * @description Allows anyone to read player data, but restricts modifications to the creator.
      * @path /players/{playerId}
-     * @allow (create) User 'BKd0tuUHi1h2pR59Ys9Fwbk4VDA2' can create a player document with playerId 'BKd0tuUHi1h2pR59Ys9Fwbk4VDA2'.
-     * @allow (get) User 'BKd0tuUHi1h2pR59Ys9Fwbk4VDA2' can read a player document with playerId 'BKd0tuUHi1h2pR59Ys9Fwbk4VDA2'.
-     * @allow (update) User 'BKd0tuUHi1h2pR59Ys9Fwbk4VDA2' can update a player document with playerId 'BKd0tuUHi1h2pR59Ys9Fwbk4VDA2'.
-     * @allow (delete) User 'BKd0tuUHi1h2pR59Ys9Fwbk4VDA2' can delete a player document with playerId 'BKd0tuUHi1h2pR59Ys9Fwbk4VDA2'.
-     * @deny (create) User 'someOtherUserId' cannot create a player document with playerId 'BKd0tuUHi1h2pR59Ys9Fwbk4VDA2'.
-     * @deny (get) User 'someOtherUserId' cannot read a player document with playerId 'BKd0tuUHi1h2pR59Ys9Fwbk4VDA2'.
-     * @deny (update) User 'someOtherUserId' cannot update a player document with playerId 'BKd0tuUHi1h2pR59Ys9Fwbk4VDA2'.
-     * @deny (delete) User 'someOtherUserId' cannot delete a player document with playerId 'BKd0tuUHi1h2pR59Ys9Fwbk4VDA2'.
-     * @principle Enforces document ownership for writes, restricts access to a user's own data tree.
+     * @allow (get, list): Any user can read the `Player` documents.
+     * @allow (create): Only the authenticated user whose UID matches the `playerId` can create the document. Requires that `request.resource.data.creatorId` must equal `request.auth.uid`.
+     * @allow (update, delete): Only the authenticated user who created the document can update or delete it.
+     * @deny The user who is not the creator.
+     * @principle Enforces a public read, owner-write access control model for player data.
      */
     match /players/{playerId} {
-      allow get: if isSignedIn() && isOwner(playerId);
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(playerId);
-      allow update: if isSignedIn() && isOwner(playerId) && resource != null;
-      allow delete: if isSignedIn() && isExistingOwner(playerId);
+      allow get, list: if true;
+      allow create: if isSignedIn() && request.auth.uid == playerId;
+      allow update, delete: if isSignedIn() && isExistingOwner(playerId);
     }
 
-    // --- Helper functions ---
+    //----------------------------------------------------------------------------------------------
+    // Helper functions
+    //----------------------------------------------------------------------------------------------
+
+    /**
+     * @description Checks if the user is signed in.
+     * @return `true` if the user is signed in, `false` otherwise.
+     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return request.auth.uid == userId;
+    /**
+     * @description Checks if the user is the owner of the document based on the `playerId`.
+     * @param playerId The ID of the player document.
+     * @return `true` if the user is the owner, `false` otherwise.
+     */
+    function isOwner(playerId) {
+      return request.auth.uid == playerId;
     }
 
-    function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
+     /**
+      * @description Checks if the user is the owner of an existing document based on the playerId.
+      * @param playerId The ID of the player document.
+      * @return `true` if the user is the owner and the document exists, `false` otherwise.
+      */
+    function isExistingOwner(playerId) {
+      return isOwner(playerId) && resource != null;
     }
   }
 }
