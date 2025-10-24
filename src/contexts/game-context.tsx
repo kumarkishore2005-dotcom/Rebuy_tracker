@@ -13,16 +13,12 @@ import {
   useCollection,
   useFirestore,
   useMemoFirebase,
-  useUser,
 } from '@/firebase';
 import {
   collection,
   doc,
   addDoc,
   updateDoc,
-  deleteDoc,
-  runTransaction,
-  writeBatch,
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -42,7 +38,6 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
 export function GameProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const firestore = useFirestore();
-  const { user } = useUser();
 
   const playersCollection = useMemoFirebase(
     () => (firestore ? collection(firestore, 'players') : null),

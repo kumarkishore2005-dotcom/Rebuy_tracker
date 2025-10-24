@@ -39,7 +39,6 @@ function DashboardSkeleton() {
 
 
 export default function DashboardClient({ role, name }: { role?: string; name?: string }) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { addPlayer, getPlayerByName, isLoading } = useGame();
   
