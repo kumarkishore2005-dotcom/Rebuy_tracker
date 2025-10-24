@@ -14,6 +14,7 @@ export interface GameContextType {
   players: Player[];
   isLoading: boolean;
   addPlayer: (name: string) => void;
+  findOrCreatePlayer: (name: string) => void;
   deletePlayer: (id: string) => void;
   deleteAllPlayers: () => void;
   addRebuy: (id: string) => void;
@@ -76,6 +77,27 @@ export function GameProvider({ children }: { children: ReactNode }) {
     },
     [firestore, playersColRef, getPlayerByName, toast]
   );
+  
+  const findOrCreatePlayer = useCallback((name: string) => {
+    if (!firestore || !playersColRef || !players) return;
+    
+    const existingPlayer = getPlayerByName(name);
+    
+    if (!existingPlayer) {
+        const newPlayer: Omit<Player, 'id' | 'createdAt'> & { createdAt: Timestamp } = {
+            name,
+            rebuys: 1,
+            blackCoins: 0,
+            createdAt: Timestamp.now(),
+        };
+        addDocumentNonBlocking(playersColRef, newPlayer);
+        console.log(`Player ${name} created.`);
+    } else {
+        console.log(`Player ${name} already exists.`);
+    }
+
+  }, [firestore, playersColRef, players, getPlayerByName]);
+
 
   const deletePlayer = useCallback(
     (id: string) => {
@@ -162,6 +184,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       players: players || [],
       isLoading: isPlayersLoading || !isClient,
       addPlayer,
+      findOrCreatePlayer,
       deletePlayer,
       deleteAllPlayers,
       addRebuy,
@@ -174,6 +197,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       isPlayersLoading,
       isClient,
       addPlayer,
+      findOrCreatePlayer,
       deletePlayer,
       deleteAllPlayers,
       addRebuy,
