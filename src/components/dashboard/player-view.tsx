@@ -35,15 +35,9 @@ function PlayerViewSkeleton() {
           <CardTitle>Your Status</CardTitle>
         </CardHeader>
         <CardContent className="flex items-center justify-between">
-          <div className="flex gap-8">
-            <div>
-              <p className="text-sm">Total Buy-ins</p>
-              <Skeleton className="h-14 w-12 mt-1" />
-            </div>
-            <div>
-              <p className="text-sm">End Count</p>
-              <Skeleton className="h-14 w-12 mt-1" />
-            </div>
+          <div>
+            <p className="text-sm">Total Buy-ins</p>
+            <Skeleton className="h-14 w-12 mt-1" />
           </div>
           <Skeleton className="h-10 w-32" />
         </CardContent>
@@ -86,7 +80,6 @@ export function PlayerView({ playerName }: PlayerViewProps) {
   }
   
   const totalBuyins = player.rebuys;
-  const endCount = player.blackCoins - player.rebuys;
   
   const handleRebuy = () => {
     addRebuy(player.id);
@@ -101,15 +94,9 @@ export function PlayerView({ playerName }: PlayerViewProps) {
           <CardTitle>Your Status</CardTitle>
         </CardHeader>
         <CardContent className="flex items-center justify-between">
-          <div className="flex gap-8">
-            <div>
-              <p className="text-sm">Total Buy-ins</p>
-              <p className="text-5xl font-bold">{totalBuyins}</p>
-            </div>
-            <div>
-              <p className="text-sm">End Count</p>
-              <p className="text-5xl font-bold">{endCount}</p>
-            </div>
+          <div>
+            <p className="text-sm">Total Buy-ins</p>
+            <p className="text-5xl font-bold">{totalBuyins}</p>
           </div>
           <Button onClick={handleRebuy} size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
             <PlusCircle className="mr-2 h-5 w-5" />
