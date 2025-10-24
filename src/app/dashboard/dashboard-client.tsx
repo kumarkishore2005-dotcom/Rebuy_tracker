@@ -6,10 +6,8 @@ import { PlayerView } from '@/components/dashboard/player-view';
 import { useGame } from '@/contexts/game-context';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
-import { useUser, useAuth } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
-import { GoogleAuthProvider, signInWithRedirect } from 'firebase/auth';
 
 function DashboardSkeleton() {
   return (
@@ -43,26 +41,13 @@ function DashboardSkeleton() {
 export default function DashboardClient({ role, name }: { role?: string; name?: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { addPlayer, getPlayerByName } = useGame();
-  const { user, isUserLoading } = useUser();
-  const auth = useAuth();
+  const { addPlayer, getPlayerByName, isLoading } = useGame();
+  
   const currentRole = searchParams.get('role');
 
   useEffect(() => {
-    if (isUserLoading || !currentRole) {
+    if (isLoading || !currentRole) {
       return; // Wait until loading is done and we know the role
-    }
-
-    // Handle Dealer Auth
-    if (currentRole === 'dealer') {
-      if (!user) {
-        // If not logged in, start the sign-in process
-        const provider = new GoogleAuthProvider();
-        if (auth) {
-          signInWithRedirect(auth, provider);
-        }
-      }
-      // If user is logged in, they will see the DealerView, nothing more to do.
     }
 
     // Handle Player joining
@@ -73,18 +58,14 @@ export default function DashboardClient({ role, name }: { role?: string; name?: 
       }
     }
 
-  }, [user, isUserLoading, currentRole, auth, router, addPlayer, getPlayerByName, searchParams]);
+  }, [isLoading, currentRole, addPlayer, getPlayerByName, searchParams]);
   
-  if (isUserLoading) {
+  if (isLoading && !currentRole) {
     return <DashboardSkeleton />;
   }
 
   if (currentRole === 'dealer') {
-    if (user) {
-      return <DealerView />;
-    }
-    // If dealer role but no user, show skeleton while redirecting to sign-in
-    return <DashboardSkeleton />;
+    return <DealerView />;
   }
 
   if (currentRole === 'player' && name) {

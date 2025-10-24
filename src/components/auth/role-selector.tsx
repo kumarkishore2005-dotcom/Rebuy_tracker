@@ -54,9 +54,9 @@ export function RoleSelector() {
       </TabsContent>
       <TabsContent value="dealer" className="mt-4">
         <div className="space-y-4 text-center">
-            <p className="text-sm text-primary-foreground">Sign in with Google to manage the game.</p>
+            <p className="text-sm text-primary-foreground">Proceed to the dashboard to manage the game.</p>
             <Button onClick={handleDealerLogin} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
-                Sign in with Google
+                Manage Game
             </Button>
         </div>
       </TabsContent>

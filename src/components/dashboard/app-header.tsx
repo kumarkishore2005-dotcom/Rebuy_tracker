@@ -14,26 +14,7 @@ export function AppHeader() {
   const router = useRouter();
   const role = searchParams.get("role");
   const name = searchParams.get("name");
-  const auth = useAuth();
-  const { user } = useUser();
-
-  const handleSignOut = () => {
-    if (auth) {
-      signOut(auth).then(() => {
-        router.push('/');
-      });
-    }
-  };
-
-  const getInitials = (name?: string | null) => {
-    if (!name) return "U";
-    const names = name.split(' ');
-    if (names.length > 1) {
-      return `${names[0][0]}${names[names.length - 1][0]}`;
-    }
-    return names[0][0];
-  }
-
+  
   return (
     <header className="sticky top-0 z-10 w-full bg-background/80 backdrop-blur-sm border-b">
       <div className="container mx-auto flex h-16 items-center justify-between">
@@ -42,27 +23,19 @@ export function AppHeader() {
           <span className="text-xl font-bold font-headline">Rebuy Tracker</span>
         </Link>
         <div className="flex items-center gap-4">
-          {role === 'dealer' && user ? (
-            <>
-              <div className="flex items-center gap-2">
-                 <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.photoURL || ''} alt={user.displayName || 'User'} />
-                    <AvatarFallback>{getInitials(user.displayName)}</AvatarFallback>
-                </Avatar>
-                <span className="text-sm font-medium hidden sm:inline-block">{user.displayName}</span>
-              </div>
-              <Button onClick={handleSignOut} variant="outline" size="sm">
-                <LogOut className="mr-2 h-4 w-4" />
-                Sign Out
-              </Button>
-            </>
-          ) : role === 'player' ? (
+          {role === 'dealer' && (
+             <div className="flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-sm font-medium text-muted-foreground">
+                <UserCog className="h-4 w-4" />
+                <span>Dealer</span>
+            </div>
+          )}
+          {role === 'player' ? (
              <div className="flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-sm font-medium text-muted-foreground">
                 <User className="h-4 w-4" />
                 <span>Player: {name}</span>
             </div>
           ) : null }
-           {role === 'player' && (
+           {(role === 'player' || role === 'dealer') && (
              <Button asChild variant="outline" size="sm">
                 <Link href="/">
                   <LogOut className="mr-2 h-4 w-4" />
@@ -75,4 +48,3 @@ export function AppHeader() {
     </header>
   );
 }
-
