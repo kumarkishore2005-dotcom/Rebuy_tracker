@@ -8,9 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, UserCog } from "lucide-react";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
-import { firebaseApp } from "@/firebase";
+import { useAuth } from "@/firebase";
 
 export function RoleSelector() {
   const [playerName, setPlayerName] = useState("");
@@ -19,6 +19,7 @@ export function RoleSelector() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const auth = useAuth();
 
   const handlePlayerJoin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,8 +30,15 @@ export function RoleSelector() {
   
   const handleDealerLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!auth) {
+      toast({
+        variant: "destructive",
+        title: "Authentication service not available",
+        description: "Please try again later.",
+      });
+      return;
+    }
     setIsSubmitting(true);
-    const auth = getAuth(firebaseApp);
     try {
       await signInWithEmailAndPassword(auth, dealerEmail, dealerPassword);
       router.push('/dashboard?role=dealer');
@@ -112,7 +120,7 @@ export function RoleSelector() {
                 className="bg-background/80 text-foreground"
                 />
             </div>
-            <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSubmitting}>
+            <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSubmitting || !auth}>
                 {isSubmitting ? 'Logging in...' : 'Login as Dealer'}
             </Button>
             <p className="text-xs text-center text-primary-foreground/60">

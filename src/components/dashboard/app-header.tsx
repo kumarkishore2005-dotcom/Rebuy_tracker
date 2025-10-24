@@ -5,20 +5,19 @@ import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { LogOut, User, UserCog } from "lucide-react";
-import { useUser } from "@/firebase";
-import { getAuth, signOut } from "firebase/auth";
-import { firebaseApp } from "@/firebase";
+import { useUser, useAuth } from "@/firebase";
+import { signOut } from "firebase/auth";
 
 export function AppHeader() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user, isAuthenticated } = useUser();
+  const auth = useAuth();
   const role = searchParams.get("role");
   const name = searchParams.get("name");
 
   const handleExit = async () => {
-    if (isAuthenticated) {
-      const auth = getAuth(firebaseApp);
+    if (auth && isAuthenticated) {
       await signOut(auth);
     }
     router.push('/');

@@ -1,60 +1,60 @@
 /**
- * @fileoverview Firestore Security Rules for Rebuy Tracker.
+ * @file Firestore Security Rules for Rebuy Tracker.
  *
- * Core Philosophy:
- * This ruleset enforces a role-based access control model. Only authenticated
- * users with the designated "dealer" role have write access to the "Dealers" collection.
- * All read access to the Dealers collection is denied to unauthorized users.
- * All users can read the public 'Players' collection.
+ * @core_philosophy This ruleset provides public read access to player data, but restricts write access.
+ *  This is a public read with owner-only writes pattern.
+ * @data_structure The database stores player data in the `/players/{playerId}` collection.
+ * @key_security_decisions All `players` are publicly readable but protected via a simple ownership model.
  *
- * Data Structure:
- * - /Dealers/{dealerId}: Stores dealer-specific data. Only dealers can modify.
- * - /Players/{playerId}: Stores player data. Publicly readable, but only authorized
- * users (dealers) can modify.
- *
- * Key Security Decisions:
- * - User listing is disabled to prevent enumeration.
- * - Default security posture is strict; any access not explicitly allowed is denied.
+ * @denormalization None.
+ * @structural_segregation None.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Secure the 'Dealers' collection. Only authenticated users can access.
-     * @path /Dealers/{dealerId}
-     * @allow (create) User with 'dealer' role can create a dealer profile.
-     * @deny (create) User without 'dealer' role cannot create a dealer profile.
-     * @allow (get, list) Authenticated user can read any dealer profile.
-     * @deny (update, delete) Only the dealer themselves can update/delete their profile.
-     * @principle Enforces role-based access control for dealer data.
+     * @description Controls read and write access to individual player documents.
+     * @path /players/{playerId}
+     * @allow (get, list): Any user can read player data.
+     * @allow (create): Only allowed if the playerId matches the authenticated user's UID.
+     * @allow (update, delete): Only allowed if the playerId matches the authenticated user's UID and the document exists.
+     * @deny (create): If the playerId does not match the authenticated user's UID.
+     * @deny (update, delete): If the playerId does not match the authenticated user's UID, or if the document does not exist.
+     * @principle Enforces public read access with owner-only writes based on document ID.
      */
-    match /Dealers/{dealerId} {
-      allow get, list: if false;
-      allow create: if isAdmin();
-      allow update, delete: if false;
-    }
-
-    /**
-     * @description Secure the 'Players' collection.
-     * @path /Players/{playerId}
-     * @allow (get, list) Any user can read player data.
-     * @deny (create, update, delete) Only authenticated admins can modify player data.
-     * @principle Public read access with restricted writes.
-     */
-    match /Players/{playerId} {
+    match /players/{playerId} {
       allow get, list: if true;
-      allow create, update, delete: if isAdmin();
+      allow create: if isSignedIn() && request.auth.uid == playerId;
+      allow update, delete: if isSignedIn() && isExistingOwner(playerId);
     }
 
     // Helper functions
+
+    /**
+     * @description Checks if the user is signed in.
+     * @return True if the user is authenticated, false otherwise.
+     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function isAdmin() {
-      return isSignedIn()
-          && get(/databases/$(database)/documents/Dealers/$(request.auth.uid)).data.role == 'dealer';
+    /**
+     * @description Checks if the user is the owner of the document.
+     * @param userId The user ID to check against the request's authentication UID.
+     * @return True if the user is the owner, false otherwise.
+     */
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the user is the owner of the document, and that the document exists.
+     * @param userId The user ID to check against the resource path.
+     * @return True if the user is the owner and the document exists, false otherwise.
+     */
+    function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
     }
   }
 }
