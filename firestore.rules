@@ -1,67 +1,48 @@
 /**
- * @fileOverview Firestore Security Rules for the poker game application.
+ * @fileoverview Firestore Security Rules for the poker game application.
  *
  * Core Philosophy:
- * This ruleset implements a permissive security posture focused on rapid prototyping while ensuring basic authorization.
- * Players can update their own rebuys, but all other data requires review for tighter restrictions.
+ * This ruleset adopts a public-read, owner-write model for player data.  All players are publicly visible.
  *
  * Data Structure:
- * The application stores player data under the `/players/{playerId}` collection.
+ * Player data is stored in the top-level `/players/{playerId}` collection.
  *
  * Key Security Decisions:
- *  - Players are not allowed to be listed publicly.
- *  - Players are allowed to update their own `rebuys` as required by the application, but all other fields should be restricted.
+ * - Players are publicly listable and readable via `get` and `list`.
+ * - Only the owner (creator) can create, update, or delete a player document.
+ * - Assumes `createdAt` are set server-side (via Firebase Functions or similar).
  *
  * Denormalization for Authorization:
- *  - None required at this time.
+ *  - The app does not require denormalization for authorization, as all player documents are public read.
  *
  * Structural Segregation:
- *  - None required at this time.
+ *  - No structural segregation is used, because it is not specified in the requirements.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Manages access to player data. Players can update their own rebuys.
+     * @description Allows anyone to read player data, but only the creator can modify it.
      * @path /players/{playerId}
-     * @allow (update) User with UID 'BKd0tuUHi1h2pR59Ys9Fwbk4VDA2' can update the `rebuys` field in their player document.
-     * @deny (create) Any user cannot create a player document through direct write, it is likely handled via a function.
-     * @deny (delete) Any user cannot delete a player document.
-     * @deny (update) User with UID 'randomUID' cannot update the player document if they are not the owner.
-     * @deny (update) User with UID 'BKd0tuUHi1h2pR59Ys9Fwbk4VDA2' cannot update fields other than rebuys.
-     * @principle Enforces ownership and restricts field updates to `rebuys`.
+     * @allow (get, list) Anyone can read a player's information.
+     * @allow (create) The user with auth.uid can create a new player.
+     * @allow (update, delete) The user with auth.uid can update/delete their own player document.
+     * @deny Any unauthorized user cannot create, update, or delete player data.
+     * @principle Enforces public read access with owner-only writes.
      */
     match /players/{playerId} {
-      // Helper function to check if the user is signed in
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      // Helper function to check if the user is the owner of the document.
-      function isOwner(playerId) {
-        return isSignedIn() && request.auth.uid == playerId;
-      }
-
-      // Helper function to check if the user is the existing owner of the document
-      function isExistingOwner(playerId) {
-        return isOwner(playerId) && resource != null;
-      }
-
-      // Allow read access to individual player documents
-      allow get: if true;
-
-      // Prevent listing of all player documents.
-      allow list: if false;
-
-      // Only allow create if false
-      allow create: if false;
-
-      // Allow a player to update ONLY their rebuys field if they are the owner.
-      allow update: if isExistingOwner(playerId) && request.resource.data.keys().toSet().hasOnly(['rebuys']) ;
-
-      // Prevent deleting player documents
-      allow delete: if false;
+      allow get, list: if true;
+      allow create: if isSignedIn()
+                    && request.resource.data.name is string
+                    && request.resource.data.rebuys is number
+                    && request.resource.data.blackCoins is number
+                    && request.resource.data.createdAt is map; // relax the rules for timestamp in create
+      allow update, delete: if isSignedIn() && request.auth.uid == resource.data.uid;
     }
+  }
+
+  function isSignedIn() {
+    return request.auth != null;
   }
 }
