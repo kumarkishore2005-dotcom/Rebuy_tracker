@@ -1,6 +1,6 @@
 'use client';
 import React, { createContext, useContext, useMemo, useCallback, ReactNode, useEffect, useState } from 'react';
-import { useFirestore, useCollection, useMemoFirebase, useAuth, initiateAnonymousSignIn } from '@/firebase';
+import { useFirestore, useCollection, useAuth, initiateAnonymousSignIn } from '@/firebase';
 import { collection, doc, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { Player } from '@/lib/types';
@@ -37,7 +37,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }
   }, [auth]);
 
-  const playersColRef = useMemoFirebase(() => {
+  const playersColRef = useMemo(() => {
     if (!firestore || !isClient) return null;
     return collection(firestore, 'players');
   }, [firestore, isClient]);
