@@ -1,7 +1,10 @@
 
+import { Timestamp } from "firebase/firestore";
+
 export type Player = {
-  id: string; // Use string for ID for more robust local state management (e.g., UUID)
+  id: string;
   name: string;
   rebuys: number;
   blackCoins: number;
+  createdAt: Timestamp;
 };

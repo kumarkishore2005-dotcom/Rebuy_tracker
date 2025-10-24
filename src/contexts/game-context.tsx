@@ -1,6 +1,14 @@
 'use client';
-import { createContext, useContext } from 'react';
+import React, { createContext, useContext, useMemo, useCallback, ReactNode } from 'react';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, doc, writeBatch, Timestamp } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 import type { Player } from '@/lib/types';
+import {
+  addDocumentNonBlocking,
+  updateDocumentNonBlocking,
+  deleteDocumentNonBlocking,
+} from '@/firebase/non-blocking-updates';
 
 export interface GameContextType {
   players: Player[];
@@ -15,6 +23,146 @@ export interface GameContextType {
 }
 
 export const GameContext = createContext<GameContextType | undefined>(undefined);
+
+export function GameProvider({ children }: { children: ReactNode }) {
+  const firestore = useFirestore();
+  const { toast } = useToast();
+
+  const playersColRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'players');
+  }, [firestore]);
+
+  const { data: players, isLoading } = useCollection<Omit<Player, 'id'>>(playersColRef);
+
+  const getPlayerByName = useCallback(
+    (name: string) => {
+      return players?.find(p => p.name.toLowerCase() === name.toLowerCase());
+    },
+    [players]
+  );
+
+  const addPlayer = useCallback(
+    (name: string) => {
+      if (!firestore || !playersColRef) return;
+      if (getPlayerByName(name)) {
+        toast({
+          title: 'Player already exists',
+          description: `${name} is already at the table.`,
+          variant: 'destructive',
+        });
+        return;
+      }
+      const newPlayer: Omit<Player, 'id'> = {
+        name,
+        rebuys: 1,
+        blackCoins: 0,
+        createdAt: Timestamp.now(),
+      };
+      addDocumentNonBlocking(playersColRef, newPlayer);
+      toast({
+        title: 'Player Added',
+        description: `${name} has joined the game.`,
+      });
+    },
+    [firestore, playersColRef, getPlayerByName, toast]
+  );
+
+  const deletePlayer = useCallback(
+    (id: string) => {
+      if (!firestore) return;
+      const playerDocRef = doc(firestore, 'players', id);
+      const player = players?.find(p => p.id === id);
+      deleteDocumentNonBlocking(playerDocRef);
+      if (player) {
+        toast({
+          title: 'Player Removed',
+          description: `${player.name} has been removed from the game.`,
+          variant: 'destructive',
+        });
+      }
+    },
+    [firestore, players, toast]
+  );
+
+  const addRebuy = useCallback(
+    (id: string) => {
+      if (!firestore) return;
+      const player = players?.find(p => p.id === id);
+      if (player) {
+        const playerDocRef = doc(firestore, 'players', id);
+        updateDocumentNonBlocking(playerDocRef, { rebuys: player.rebuys + 1 });
+        toast({
+          title: 'Rebuy Added',
+          description: `Rebuy confirmed for ${player.name}.`,
+        });
+      }
+    },
+    [firestore, players, toast]
+  );
+
+  const removeRebuy = useCallback(
+    (id: string) => {
+      if (!firestore) return;
+      const player = players?.find(p => p.id === id);
+      if (player) {
+        if (player.rebuys <= 1) {
+          toast({
+            title: 'Action Not Allowed',
+            description: 'Cannot remove the initial buy-in.',
+            variant: 'destructive',
+          });
+          return;
+        }
+        const playerDocRef = doc(firestore, 'players', id);
+        updateDocumentNonBlocking(playerDocRef, { rebuys: player.rebuys - 1 });
+        toast({
+          title: 'Rebuy Removed',
+          description: `Removed a rebuy for ${player.name}.`,
+          variant: 'destructive',
+        });
+      }
+    },
+    [firestore, players, toast]
+  );
+
+  const updateBlackCoins = useCallback(
+    (id: string, count: number) => {
+      if (!firestore) return;
+      const playerDocRef = doc(firestore, 'players', id);
+      updateDocumentNonBlocking(playerDocRef, { blackCoins: Math.max(0, count) });
+    },
+    [firestore]
+  );
+
+  const value = useMemo(
+    () => ({
+      players: players || [],
+      // lastUpdated is not directly available from Firestore snapshot, but can be derived if needed
+      lastUpdated: null,
+      isLoading,
+      addPlayer,
+      deletePlayer,
+      addRebuy,
+      removeRebuy,
+      updateBlackCoins,
+      getPlayerByName,
+    }),
+    [
+      players,
+      isLoading,
+      addPlayer,
+      deletePlayer,
+      addRebuy,
+      removeRebuy,
+      updateBlackCoins,
+      getPlayerByName,
+    ]
+  );
+
+  return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
+}
+
 
 export function useGame() {
   const context = useContext(GameContext);

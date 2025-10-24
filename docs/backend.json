@@ -6,240 +6,54 @@
       "type": "object",
       "description": "Represents a player in the poker game.",
       "properties": {
-        "id": {
+        "name": {
           "type": "string",
-          "description": "Unique identifier for the player."
+          "description": "The player's chosen name."
         },
-        "username": {
-          "type": "string",
-          "description": "The player's username."
+        "rebuys": {
+            "type": "number",
+            "description": "The total number of buy-ins and re-buys for the player."
+        },
+        "blackCoins": {
+            "type": "number",
+            "description": "The number of black coins the player has at the end of the game."
+        },
+        "createdAt": {
+            "type": "object",
+            "description": "The timestamp when the player was created."
         }
       },
       "required": [
-        "id",
-        "username"
-      ]
-    },
-    "Dealer": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Dealer",
-      "type": "object",
-      "description": "Represents a dealer in the poker game.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the dealer."
-        },
-        "username": {
-          "type": "string",
-          "description": "The dealer's username."
-        }
-      },
-      "required": [
-        "id",
-        "username"
-      ]
-    },
-    "GameRound": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "GameRound",
-      "type": "object",
-      "description": "Represents a single round of the poker game.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the game round."
-        },
-        "startTime": {
-          "type": "string",
-          "description": "The date and time when the round started.",
-          "format": "date-time"
-        },
-        "endTime": {
-          "type": "string",
-          "description": "The date and time when the round ended.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "startTime"
-      ]
-    },
-    "BuyIn": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "BuyIn",
-      "type": "object",
-      "description": "Represents a buy-in for a player in a specific game round.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the buy-in."
-        },
-        "playerId": {
-          "type": "string",
-          "description": "Reference to Player. (Relationship: Player 1:N BuyIn)"
-        },
-        "gameRoundId": {
-          "type": "string",
-          "description": "Reference to GameRound. (Relationship: GameRound 1:N BuyIn)"
-        },
-        "amount": {
-          "type": "number",
-          "description": "The amount of the buy-in."
-        },
-        "buyInTime": {
-          "type": "string",
-          "description": "The date and time of the buy-in.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "playerId",
-        "gameRoundId",
-        "amount",
-        "buyInTime"
-      ]
-    },
-    "Rebuy": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Rebuy",
-      "type": "object",
-      "description": "Represents a re-buy for a player in a specific game round.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the re-buy."
-        },
-        "buyInId": {
-          "type": "string",
-          "description": "Reference to BuyIn. (Relationship: BuyIn 1:N Rebuy)"
-        },
-        "amount": {
-          "type": "number",
-          "description": "The amount of the re-buy."
-        },
-        "rebuyTime": {
-          "type": "string",
-          "description": "The date and time of the re-buy.",
-          "format": "date-time"
-        },
-        "dealerId": {
-          "type": "string",
-          "description": "Reference to Dealer who approved/added the Rebuy. (Relationship: Dealer 1:N Rebuy)"
-        }
-      },
-      "required": [
-        "id",
-        "buyInId",
-        "amount",
-        "rebuyTime",
-        "dealerId"
+        "name",
+        "rebuys",
+        "blackCoins",
+        "createdAt"
       ]
     }
   },
   "auth": {
     "providers": [
-      "password",
       "anonymous"
     ]
   },
   "firestore": {
     "structure": [
-      {
-        "path": "/players/{playerId}",
-        "definition": {
-          "entityName": "Player",
-          "schema": {
-            "$ref": "#/backend/entities/Player"
-          },
-          "description": "Stores player information. The 'playerId' is the same as the user's Firebase Auth UID.",
-          "params": [
-            {
-              "name": "playerId",
-              "description": "The unique ID of the player, matching the Firebase Auth UID."
+        {
+            "path": "/players/{playerId}",
+            "definition": {
+                "entityName": "Player",
+                "schema": {
+                    "$ref": "#/backend/entities/Player"
+                },
+                "description": "Stores information for each player in the game.",
+                "params": [
+                    {
+                      "name": "playerId",
+                      "description": "The unique ID of the player document."
+                    }
+                ]
             }
-          ]
         }
-      },
-      {
-        "path": "/dealers/{dealerId}",
-        "definition": {
-          "entityName": "Dealer",
-          "schema": {
-            "$ref": "#/backend/entities/Dealer"
-          },
-          "description": "Stores dealer information. The 'dealerId' is the same as the user's Firebase Auth UID.",
-          "params": [
-            {
-              "name": "dealerId",
-              "description": "The unique ID of the dealer, matching the Firebase Auth UID."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/players/{playerId}/buyIns/{buyInId}",
-        "definition": {
-          "entityName": "BuyIn",
-          "schema": {
-            "$ref": "#/backend/entities/BuyIn"
-          },
-          "description": "Stores buy-in information for each player.  The playerId parameter matches the player's Firebase Auth UID.",
-          "params": [
-            {
-              "name": "playerId",
-              "description": "The unique ID of the player, matching the Firebase Auth UID."
-            },
-            {
-              "name": "buyInId",
-              "description": "The unique ID of the buyin."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/players/{playerId}/buyIns/{buyInId}/rebuys/{rebuyId}",
-        "definition": {
-          "entityName": "Rebuy",
-          "schema": {
-            "$ref": "#/backend/entities/Rebuy"
-          },
-          "description": "Stores rebuy information for a given buyin of each player. Includes denormalized 'dealerId' for authorization independence.",
-          "params": [
-            {
-              "name": "playerId",
-              "description": "The unique ID of the player, matching the Firebase Auth UID."
-            },
-            {
-              "name": "buyInId",
-              "description": "The unique ID of the buyin."
-            },
-            {
-              "name": "rebuyId",
-              "description": "The unique ID of the rebuy."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/gameRounds/{gameRoundId}",
-        "definition": {
-          "entityName": "GameRound",
-          "schema": {
-            "$ref": "#/backend/entities/GameRound"
-          },
-          "description": "Stores information about each game round.",
-          "params": [
-            {
-              "name": "gameRoundId",
-              "description": "The unique ID of the game round."
-            }
-          ]
-        }
-      }
-    ],
-    "reasoning": "This design prioritizes authorization independence and secure list operations (QAPs) through denormalization and structural segregation. It uses dedicated collections for dealers and players. Buy-ins and Rebuys are stored as subcollections under each player, which helps to keep things neat and the DB rules easier to read and secure. The `players` collection stores the basic user info. `BuyIns` track each player's buy-ins for the current round. `Rebuys` track each player's rebuys, along with a dealer ID for authorization. Authorization Independence is achieved by storing the dealer's id on each rebuy, allowing to verify dealer roles without having to perform a `get()` request to the dealer document. All documents in each collection share the same security requirements, which enables secure `list` operations."
+    ]
   }
 }
