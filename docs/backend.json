@@ -10,24 +10,27 @@
           "type": "string",
           "description": "The player's chosen name."
         },
-        "rebuys": {
-            "type": "number",
-            "description": "The total number of buy-ins and re-buys for the player."
-        },
         "blackCoins": {
-            "type": "number",
-            "description": "The number of black coins the player has at the end of the game."
+          "type": "number",
+          "description": "The number of black coins the player has at the end of the game."
         },
         "createdAt": {
-            "type": "object",
-            "description": "The timestamp when the player was created."
+          "type": "object",
+          "description": "The timestamp when the player was created."
+        },
+        "rebuyTimestamps": {
+          "type": "array",
+          "description": "An array of timestamps for each buy-in and re-buy.",
+          "items": {
+            "type": "object"
+          }
         }
       },
       "required": [
         "name",
-        "rebuys",
         "blackCoins",
-        "createdAt"
+        "createdAt",
+        "rebuyTimestamps"
       ]
     }
   },
@@ -38,22 +41,22 @@
   },
   "firestore": {
     "structure": [
-        {
-            "path": "/players/{playerId}",
-            "definition": {
-                "entityName": "Player",
-                "schema": {
-                    "$ref": "#/backend/entities/Player"
-                },
-                "description": "Stores information for each player in the game.",
-                "params": [
-                    {
-                      "name": "playerId",
-                      "description": "The unique ID of the player document."
-                    }
-                ]
+      {
+        "path": "/players/{playerId}",
+        "definition": {
+          "entityName": "Player",
+          "schema": {
+            "$ref": "#/backend/entities/Player"
+          },
+          "description": "Stores information for each player in the game.",
+          "params": [
+            {
+              "name": "playerId",
+              "description": "The unique ID of the player document."
             }
+          ]
         }
+      }
     ]
   }
 }

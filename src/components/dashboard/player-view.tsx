@@ -69,16 +69,18 @@ export function PlayerView({ playerName }: PlayerViewProps) {
 
   if (!player) {
     return (
-        <div className="text-center py-10">
-          <h2 className="text-2xl font-semibold">Waiting for the dealer to add you to the game...</h2>
-          <p className="text-muted-foreground mt-2">
-            Once you're added, your stats will appear here.
-          </p>
+        <div className="flex-1 flex items-center justify-center text-center py-10">
+          <div>
+              <h2 className="text-2xl font-semibold">Joining game...</h2>
+              <p className="text-muted-foreground mt-2">
+                  Your stats will appear here shortly.
+              </p>
+          </div>
       </div>
     )
   }
   
-  const totalBuyins = player.rebuys;
+  const totalBuyins = player.rebuys ?? 0;
   
   const handleRebuy = () => {
     addRebuy(player.id);

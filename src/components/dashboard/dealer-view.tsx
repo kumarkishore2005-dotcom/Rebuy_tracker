@@ -44,7 +44,7 @@ function AddPlayerForm() {
 
 function TotalBuyIns() {
     const { players } = useGame();
-    const totalBuyIns = players.reduce((total, player) => total + player.rebuys, 0);
+    const totalBuyIns = players.reduce((total, player) => total + (player.rebuys ?? 0), 0);
 
     return (
         <Card className="bg-secondary">

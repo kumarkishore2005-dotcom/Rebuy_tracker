@@ -1,7 +1,7 @@
 'use client';
 import React, { createContext, useContext, useMemo, useCallback, ReactNode, useEffect, useState } from 'react';
 import { useFirestore, useCollection, useAuth, initiateAnonymousSignIn } from '@/firebase';
-import { collection, doc, Timestamp } from 'firebase/firestore';
+import { collection, doc, Timestamp, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { Player } from '@/lib/types';
 import {
@@ -43,7 +43,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return collection(firestore, 'players');
   }, [firestore, isClient]);
 
-  const { data: players, isLoading: isPlayersLoading } = useCollection<Player>(playersColRef);
+  const { data: playersFromHook, isLoading: isPlayersLoading } = useCollection<Omit<Player, 'rebuys'>>(playersColRef);
+
+  const players = useMemo(() => {
+    return playersFromHook?.map(p => ({
+        ...p,
+        rebuys: p.rebuyTimestamps?.length || 0,
+    })) || [];
+  }, [playersFromHook]);
 
   const getPlayerByName = useCallback(
     (name: string) => {
@@ -63,11 +70,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
         });
         return;
       }
-      const newPlayer: Omit<Player, 'id' | 'createdAt'> & { createdAt: Timestamp } = {
+      const now = Timestamp.now();
+      const newPlayer: Omit<Player, 'id' | 'rebuys' | 'createdAt'> & { createdAt: Timestamp } = {
         name,
-        rebuys: 1,
+        rebuyTimestamps: [now],
         blackCoins: 0,
-        createdAt: Timestamp.now(),
+        createdAt: now,
       };
       addDocumentNonBlocking(playersColRef, newPlayer);
       toast({
@@ -79,16 +87,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
   );
   
   const findOrCreatePlayer = useCallback((name: string) => {
-    if (!firestore || !playersColRef || !players) return;
+    if (!firestore || !playersColRef || isPlayersLoading) return;
     
     const existingPlayer = getPlayerByName(name);
     
     if (!existingPlayer) {
-        const newPlayer: Omit<Player, 'id' | 'createdAt'> & { createdAt: Timestamp } = {
+        const now = Timestamp.now();
+        const newPlayer: Omit<Player, 'id'| 'rebuys' | 'createdAt'> & { createdAt: Timestamp } = {
             name,
-            rebuys: 1,
+            rebuyTimestamps: [now],
             blackCoins: 0,
-            createdAt: Timestamp.now(),
+            createdAt: now,
         };
         addDocumentNonBlocking(playersColRef, newPlayer);
         console.log(`Player ${name} created.`);
@@ -96,7 +105,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         console.log(`Player ${name} already exists.`);
     }
 
-  }, [firestore, playersColRef, players, getPlayerByName]);
+  }, [firestore, playersColRef, isPlayersLoading, getPlayerByName]);
 
 
   const deletePlayer = useCallback(
@@ -135,7 +144,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       const player = players?.find(p => p.id === id);
       if (player) {
         const playerDocRef = doc(firestore, 'players', id);
-        updateDocumentNonBlocking(playerDocRef, { rebuys: player.rebuys + 1 });
+        updateDocumentNonBlocking(playerDocRef, { rebuyTimestamps: arrayUnion(Timestamp.now()) });
         toast({
           title: 'Rebuy Added',
           description: `Rebuy confirmed for ${player.name}.`,
@@ -149,8 +158,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     (id: string) => {
       if (!firestore) return;
       const player = players?.find(p => p.id === id);
-      if (player) {
-        if (player.rebuys <= 1) {
+      if (player && player.rebuyTimestamps && player.rebuyTimestamps.length > 0) {
+        if (player.rebuyTimestamps.length <= 1) {
           toast({
             title: 'Action Not Allowed',
             description: 'Cannot remove the initial buy-in.',
@@ -158,11 +167,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
           });
           return;
         }
+        // To remove the last rebuy, we unfortunately have to provide the exact Timestamp object.
+        const lastRebuy = player.rebuyTimestamps[player.rebuyTimestamps.length - 1];
         const playerDocRef = doc(firestore, 'players', id);
-        updateDocumentNonBlocking(playerDocRef, { rebuys: player.rebuys - 1 });
+        updateDocumentNonBlocking(playerDocRef, { rebuyTimestamps: arrayRemove(lastRebuy) });
         toast({
           title: 'Rebuy Removed',
-          description: `Removed a rebuy for ${player.name}.`,
+          description: `Removed the last rebuy for ${player.name}.`,
           variant: 'destructive',
         });
       }

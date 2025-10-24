@@ -12,11 +12,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { MinusCircle, PlusCircle, Trash2, User } from "lucide-react";
+import { MinusCircle, PlusCircle, Trash2, User, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "../ui/input";
 import { Skeleton } from "../ui/skeleton";
 import { ConfirmationDialog } from "../shared/confirmation-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { format } from "date-fns";
+import type { Timestamp } from "firebase/firestore";
 
 interface PlayerListProps {
   isDealer?: boolean;
@@ -49,13 +52,48 @@ function PlayerListSkeleton() {
       </div>
     );
   }
+  
+function RebuyTooltip({ timestamps }: { timestamps: Timestamp[] }) {
+    if (!timestamps || timestamps.length === 0) {
+      return null;
+    }
+    
+    // Sort timestamps just in case, oldest first
+    const sortedTimestamps = [...timestamps].sort((a, b) => a.toMillis() - b.toMillis());
+  
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="flex items-center justify-center gap-1 cursor-help">
+              {timestamps.length}
+              <Info className="h-3 w-3 text-muted-foreground" />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            <div className="p-2 text-sm">
+              <p className="font-bold mb-2 border-b pb-1">Buy-in History</p>
+              <ul className="space-y-1">
+                {sortedTimestamps.map((ts, index) => (
+                  <li key={index} className="text-xs">
+                    <span className="font-semibold">{index === 0 ? 'Buy-in:' : `Re-buy #${index}:`}</span>
+                    <span className="ml-2">{format(ts.toDate(), "h:mm a")}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
 
 export function PlayerList({ isDealer = false, highlightPlayerName }: PlayerListProps) {
   const { players, addRebuy, removeRebuy, deletePlayer, updateBlackCoins, isLoading } = useGame();
 
   const sortedPlayers = useMemo(() => {
     // Memoizing the sorted list is crucial to prevent re-render issues with real-time data
-    return [...players].sort((a, b) => b.rebuys - a.rebuys);
+    return [...players].sort((a, b) => (b.rebuys ?? 0) - (a.rebuys ?? 0));
   }, [players]);
 
   if (isLoading) {
@@ -86,7 +124,7 @@ export function PlayerList({ isDealer = false, highlightPlayerName }: PlayerList
                     </div>
                   </TableCell>
                   <TableCell className="text-center text-lg font-bold">
-                    {player.rebuys}
+                    <RebuyTooltip timestamps={player.rebuyTimestamps} />
                   </TableCell>
                   {isDealer && (
                     <>
@@ -100,7 +138,7 @@ export function PlayerList({ isDealer = false, highlightPlayerName }: PlayerList
                         />
                       </TableCell>
                       <TableCell className="text-center text-lg font-bold">
-                        {player.blackCoins - player.rebuys}
+                        {player.blackCoins - (player.rebuys ?? 0)}
                       </TableCell>
                     </>
                   )}
@@ -112,6 +150,7 @@ export function PlayerList({ isDealer = false, highlightPlayerName }: PlayerList
                           size="icon"
                           onClick={() => removeRebuy(player.id)}
                           aria-label={`Remove re-buy for ${player.name}`}
+                          disabled={(player.rebuys ?? 0) <= 1}
                         >
                           <MinusCircle className="h-5 w-5" />
                         </Button>
