@@ -1,76 +1,71 @@
 /**
- * @file Firestore Security Rules
- * @core_philosophy This ruleset enforces a user-ownership model for user profiles
- * and allows dealers (authenticated users) to manage player information. It prioritizes
- * security by ensuring that only the authenticated user can access their own profile
- * and that player data can only be modified by authenticated dealers.
- * @data_structure User profiles are stored under `/users/{userId}`, and player data is
- * stored under `/players/{playerId}`.
- * @key_security_decisions
- *   - Users can only read and write their own profile data.
- *   - Dealers (authenticated users) can create, update, and delete player data.
- *   - Listing all users is disallowed to prevent unauthorized data access.
+ * @fileoverview Firestore Security Rules for Rebuy Tracker.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a user-ownership model for user profiles and allows dealers (authenticated users)
+ * to manage player data. It prioritizes security by default, restricting access unless explicitly allowed.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores profile information for each user (dealer). Access is restricted to the user themselves.
+ * - /players/{playerId}: Stores player data, accessible to authenticated dealers.
+ *
+ * Key Security Decisions:
+ * - User listing is disallowed.
+ * - Player data is accessible to any authenticated user, as the application is intended for use by logged-in dealers.
+ *
+ * Denormalization for Authorization: N/A - Current rules do not require denormalization.
+ * Structural Segregation: N/A - No separation of public/private data is required.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to user profile information. Only the authenticated user can read/write their own document.
+     * @description Controls access to user profile information.
      * @path /users/{userId}
-     * @allow (get, create, update, delete) if the user is authenticated and the userId matches the authenticated user's UID.
-     * @deny (get, create, update, delete) if the user is not authenticated or the userId does not match the authenticated user's UID.
+     * @allow (create) - If the user is creating their own profile.
+     * @allow (get, update, delete) - If the user is accessing their own profile.
+     * @deny (list) - Listing all users is not allowed.
+     * @deny (create, update, delete) - If the user is not authenticated or not the owner.
      * @principle Enforces document ownership for user profiles.
      */
     match /users/{userId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
       allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId) && isExistingOwner(userId);
-      allow delete: if isOwner(userId) && isExistingOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.uid == request.auth.uid;
+      allow update: if isExistingOwner(userId) && request.resource.data.uid == request.auth.uid;
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Controls access to player information. Dealers (authenticated users) can create, update, and delete player documents.
+     * @description Controls access to player data.
      * @path /players/{playerId}
-     * @allow (get, list, create, update, delete) if the user is authenticated.
-     * @deny (get, list, create, update, delete) if the user is not authenticated.
-     * @principle Allows dealers to manage player data, requiring authentication for all operations.
+     * @allow (get, list) - Any authenticated user can read player data.
+     * @allow (create, update, delete) - Any authenticated user can manage player data.
+     * @deny (create, update, delete) - If the user is not authenticated.
+     * @principle Allows authenticated users (dealers) to manage player data.
      */
     match /players/{playerId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get, list: if isSignedIn();
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
-    }
-
-    // --- Helper functions ---
-
-    /**
-     * @description Checks if the user is signed in.
-     * @return True if the user is authenticated, false otherwise.
-     */
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    /**
-     * @description Checks if the authenticated user is the owner of the document.
-     * @param userId The user ID from the document path.
-     * @return True if the user is authenticated and the userId matches the authenticated user's UID, false otherwise.
-     */
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-    
-    /**
-     * @description Checks if the authenticated user is the owner of the existing document.
-     * @param userId The user ID from the document path.
-     * @return True if the user is authenticated, the userId matches the authenticated user's UID, and the resource exists.
-     */
-    function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
   }
 }
