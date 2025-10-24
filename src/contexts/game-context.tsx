@@ -9,6 +9,7 @@ import React, {
   useCallback,
   useMemo,
   useEffect,
+  useState,
 } from 'react';
 import type { Player } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -40,11 +41,11 @@ const initialState: GameState = {
 const gameReducer = (state: GameState, action: Action): GameState => {
   switch (action.type) {
     case 'SET_STATE':
-        // Only update if the incoming state is different to prevent loops
-        if (JSON.stringify(action.payload.players) !== JSON.stringify(state.players)) {
-            return { ...state, players: action.payload.players };
-        }
-        return state;
+        return {
+            ...state,
+            players: action.payload.players,
+            isLoading: action.payload.isLoading,
+        };
     case 'ADD_PLAYER':
       const newPlayer: Player = {
         id: uuidv4(),
@@ -136,6 +137,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const handleStorageChange = (event: StorageEvent) => {
         if (event.key === LOCAL_STORAGE_KEY && event.newValue) {
             try {
+                // Prevent infinite loop by checking if the new value is different
+                if (event.newValue === JSON.stringify({ players: state.players })) {
+                    return;
+                }
                 const newState = JSON.parse(event.newValue);
                 dispatch({ type: 'SET_STATE', payload: { ...newState, isLoading: false } });
             } catch (error) {
@@ -148,7 +153,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, []); 
+  }, [state.players]); 
 
   const addPlayer = useCallback(
     (name: string) => {
