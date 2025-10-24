@@ -1,10 +1,11 @@
+
 "use client";
 
 import { useGame } from "@/contexts/game-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlayerList } from "./player-list";
-import { Users, Clock } from "lucide-react";
+import { Users, Clock, PlusCircle } from "lucide-react";
 import { Skeleton } from "../ui/skeleton";
 
 interface PlayerViewProps {
@@ -44,7 +45,7 @@ function PlayerViewSkeleton() {
               <Skeleton className="h-14 w-12 mt-1" />
             </div>
           </div>
-          {/* Player cannot request re-buy directly anymore */}
+          <Skeleton className="h-10 w-32" />
         </CardContent>
       </Card>
       <Card>
@@ -65,7 +66,7 @@ function PlayerViewSkeleton() {
 }
 
 export function PlayerView({ playerName }: PlayerViewProps) {
-  const { getPlayerByName, isLoading } = useGame();
+  const { getPlayerByName, addRebuy, isLoading } = useGame();
   
   if (isLoading) {
     return <PlayerViewSkeleton />;
@@ -87,6 +88,10 @@ export function PlayerView({ playerName }: PlayerViewProps) {
   const totalBuyins = player.rebuys;
   const endCount = player.blackCoins - player.rebuys;
   
+  const handleRebuy = () => {
+    addRebuy(player.id);
+  }
+
   return (
     <div className="space-y-8">
       <h1 className="text-4xl font-bold font-headline">Welcome, {playerName}!</h1>
@@ -106,14 +111,17 @@ export function PlayerView({ playerName }: PlayerViewProps) {
               <p className="text-5xl font-bold">{endCount}</p>
             </div>
           </div>
-          {/* The button for requesting a re-buy is removed. The dealer now handles this. */}
+          <Button onClick={handleRebuy} size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
+            <PlusCircle className="mr-2 h-5 w-5" />
+            Request Re-buy
+          </Button>
         </CardContent>
       </Card>
       
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Users /> Table Standings</CardTitle>
-          <CardDescription>See how you stack up against the competition. Contact the dealer for re-buys.</CardDescription>
+          <CardDescription>See how you stack up against the competition.</CardDescription>
         </CardHeader>
         <CardContent>
           <PlayerList highlightPlayerName={playerName} />
