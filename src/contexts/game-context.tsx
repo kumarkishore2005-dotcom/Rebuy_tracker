@@ -1,27 +1,16 @@
+
 'use client';
 
 import {
   createContext,
   useContext,
   ReactNode,
+  useState,
   useCallback,
   useMemo,
 } from 'react';
 import type { Player } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import {
-  useCollection,
-  useFirestore,
-  useMemoFirebase,
-} from '@/firebase';
-import {
-  collection,
-  doc,
-  addDoc,
-  updateDoc,
-} from 'firebase/firestore';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 
 interface GameContextType {
   players: Player[];
@@ -37,20 +26,12 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
 
 export function GameProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
-  const firestore = useFirestore();
-
-  const playersCollection = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'players') : null),
-    [firestore]
-  );
-
-  const { data: players, isLoading } = useCollection<Player>(playersCollection);
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const addPlayer = useCallback(
     (name: string) => {
-      if (!playersCollection) return;
-
-      const existingPlayer = players?.find(
+      const existingPlayer = players.find(
         (p) => p.name.toLowerCase() === name.toLowerCase()
       );
       if (existingPlayer) {
@@ -62,120 +43,86 @@ export function GameProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const newPlayer: Omit<Player, 'id'> = {
+      const newPlayer: Player = {
+        id: new Date().toISOString(), // Use a temporary unique ID
         name,
         rebuys: 1,
         blackCoins: 0,
       };
-      addDoc(playersCollection, newPlayer)
-        .then(() => {
-          toast({
-            title: 'Player Joined',
-            description: `${name} has joined the table with 1 buy-in.`,
-          });
-        })
-        .catch(() => {
-            const contextualError = new FirestorePermissionError({
-                operation: 'create',
-                path: playersCollection.path,
-                requestResourceData: newPlayer,
-            });
-            errorEmitter.emit('permission-error', contextualError);
-        });
+
+      setPlayers((prevPlayers) => [...prevPlayers, newPlayer]);
+
+      toast({
+        title: 'Player Joined',
+        description: `${name} has joined the table with 1 buy-in.`,
+      });
     },
-    [players, playersCollection, toast]
+    [players, toast]
   );
 
   const addRebuy = useCallback(
     (playerId: string) => {
-      if (!firestore) return;
-      const playerDocRef = doc(firestore, 'players', playerId);
-      const player = players?.find((p) => p.id === playerId);
-
-      if (!player) return;
-
-      updateDoc(playerDocRef, { rebuys: player.rebuys + 1 })
-        .then(() => {
-          toast({
-            title: 'Re-buy Added',
-            description: `${player.name} has re-bought.`,
-          });
-        })
-        .catch(() => {
-            const contextualError = new FirestorePermissionError({
-                operation: 'update',
-                path: playerDocRef.path,
-                requestResourceData: { rebuys: player.rebuys + 1 },
+      setPlayers((prevPlayers) =>
+        prevPlayers.map((p) => {
+          if (p.id === playerId) {
+            toast({
+              title: 'Re-buy Added',
+              description: `${p.name} has re-bought.`,
             });
-            errorEmitter.emit('permission-error', contextualError);
-        });
+            return { ...p, rebuys: p.rebuys + 1 };
+          }
+          return p;
+        })
+      );
     },
-    [firestore, players, toast]
+    [toast]
   );
 
   const removeRebuy = useCallback(
     (playerId: string) => {
-      if (!firestore) return;
-      const playerDocRef = doc(firestore, 'players', playerId);
-      const player = players?.find((p) => p.id === playerId);
-
-      if (!player) return;
-
-      if (player.rebuys > 1) {
-        updateDoc(playerDocRef, { rebuys: player.rebuys - 1 })
-          .then(() => {
+      setPlayers((prevPlayers) =>
+        prevPlayers.map((p) => {
+          if (p.id === playerId && p.rebuys > 1) {
             toast({
               title: 'Re-buy Removed',
-              description: `A re-buy was removed for ${player.name}.`,
+              description: `A re-buy was removed for ${p.name}.`,
               variant: 'destructive',
             });
-          })
-          .catch(() => {
-            const contextualError = new FirestorePermissionError({
-                operation: 'update',
-                path: playerDocRef.path,
-                requestResourceData: { rebuys: player.rebuys - 1 },
+            return { ...p, rebuys: p.rebuys - 1 };
+          }
+          if (p.id === playerId && p.rebuys <= 1) {
+            toast({
+              title: 'Action Not Allowed',
+              description: 'Cannot remove the initial buy-in.',
+              variant: 'destructive',
             });
-            errorEmitter.emit('permission-error', contextualError);
-        });
-      } else {
-        toast({
-          title: 'Action Not Allowed',
-          description: 'Cannot remove the initial buy-in.',
-          variant: 'destructive',
-        });
-      }
+          }
+          return p;
+        })
+      );
     },
-    [firestore, players, toast]
+    [toast]
   );
 
   const getPlayerByName = useCallback(
     (name: string): Player | undefined => {
-      return players?.find((p) => p.name.toLowerCase() === name.toLowerCase());
+      return players.find((p) => p.name.toLowerCase() === name.toLowerCase());
     },
     [players]
   );
 
-  const updateBlackCoins = useCallback(
-    (playerId: string, count: number) => {
-      if (!firestore) return;
-      const validCount = count >= 0 ? count : 0;
-      const playerDocRef = doc(firestore, 'players', playerId);
-      updateDoc(playerDocRef, { blackCoins: validCount }).catch(() => {
-        const contextualError = new FirestorePermissionError({
-            operation: 'update',
-            path: playerDocRef.path,
-            requestResourceData: { blackCoins: validCount },
-        });
-        errorEmitter.emit('permission-error', contextualError);
-      });
-    },
-    [firestore]
-  );
+  const updateBlackCoins = useCallback((playerId: string, count: number) => {
+    const validCount = count >= 0 ? count : 0;
+    setPlayers((prevPlayers) =>
+      prevPlayers.map((p) =>
+        p.id === playerId ? { ...p, blackCoins: validCount } : p
+      )
+    );
+  }, []);
 
   const value = useMemo(
     () => ({
-      players: players || [],
+      players,
       isLoading,
       addPlayer,
       addRebuy,

@@ -47,25 +47,5 @@
   },
   "auth": {
     "providers": ["google.com"]
-  },
-  "firestore": {
-    "structure": [
-      {
-        "path": "/users/{userId}",
-        "definition": {
-          "entityName": "User",
-          "schema": { "$ref": "#/backend/entities/User" },
-          "description": "Stores dealer profile information. Only the authenticated user can read/write their own document."
-        }
-      },
-      {
-        "path": "/players/{playerId}",
-        "definition": {
-          "entityName": "Player",
-          "schema": { "$ref": "#/backend/entities/Player" },
-          "description": "Stores information about each player in the game. Dealers can create, update, and delete player documents."
-        }
-      }
-    ]
   }
 }
