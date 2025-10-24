@@ -1,17 +1,9 @@
 'use client';
 
-import React, {
-  createContext,
-  useContext,
-  ReactNode,
-  useState,
-  useCallback,
-  useMemo,
-  useEffect,
-} from 'react';
-import type { Player } from '@/lib/types';
-import { useToast } from '@/hooks/use-toast';
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { useToast } from '@/hooks/use-toast';
+import type { Player } from '@/lib/types';
 
 const LOCAL_STORAGE_KEY = 'rebuy-tracker-game-state';
 
@@ -20,234 +12,163 @@ interface GameState {
   lastUpdated: string | null;
 }
 
-// --- Context ---
 interface GameContextType {
   players: Player[];
   lastUpdated: string | null;
   isLoading: boolean;
   addPlayer: (name: string) => void;
-  deletePlayer: (playerId: string) => void;
-  addRebuy: (playerId: string) => void;
-  removeRebuy: (playerId: string) => void;
+  deletePlayer: (id: string) => void;
+  addRebuy: (id: string) => void;
+  removeRebuy: (id: string) => void;
+  updateBlackCoins: (id: string, count: number) => void;
   getPlayerByName: (name: string) => Player | undefined;
-  updateBlackCoins: (playerId: string, count: number) => void;
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
-// --- Provider ---
 export function GameProvider({ children }: { children: ReactNode }) {
-  const [gameState, setGameState] = useState<GameState | undefined>(undefined);
+  const [gameState, setGameState] = useState<GameState>({ players: [], lastUpdated: null });
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const isLoading = gameState === undefined;
 
-  // Load from localStorage on initial client-side mount
+  // Load localStorage on mount
   useEffect(() => {
     try {
-      const savedStateJSON = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (savedStateJSON) {
-        setGameState(JSON.parse(savedStateJSON));
-      } else {
-        // If no saved state, initialize with empty state
-        setGameState({ players: [], lastUpdated: null });
-      }
-    } catch (error) {
-      console.error('Failed to load state from localStorage', error);
-      // Initialize with empty state on error
-      setGameState({ players: [], lastUpdated: null });
+      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (saved) setGameState(JSON.parse(saved));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
-  // Listen for storage changes from other tabs
+  // Sync state across tabs
   useEffect(() => {
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === LOCAL_STORAGE_KEY && event.newValue) {
         try {
-          const newState = JSON.parse(event.newValue);
-          setGameState(newState);
-        } catch (error) {
-          console.error("Failed to parse state from storage event", error);
+          setGameState(JSON.parse(event.newValue));
+        } catch (e) {
+          console.error('Failed to parse state from storage event', e);
         }
       }
     };
-
     window.addEventListener('storage', handleStorageChange);
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
 
-  // Unified function to update state and persist to localStorage
-  const updateAndPersistState = useCallback((updater: (prevState: GameState) => GameState) => {
-    // We can only update state if it has been loaded from localStorage first
-    setGameState(prevState => {
-      if (prevState === undefined) return undefined; // Should not happen, but a safeguard
-      const newState = updater(prevState);
+  // Persist state to localStorage
+  const updateState = useCallback((updater: (prev: GameState) => GameState) => {
+    setGameState(prev => {
+      const next = updater(prev);
       try {
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newState));
-      } catch (error) {
-        console.error('Failed to save state to localStorage', error);
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(next));
+      } catch (e) {
+        console.error(e);
       }
-      return newState;
+      return next;
     });
   }, []);
 
+  const addPlayer = useCallback((name: string) => {
+    updateState(prev => {
+      if (prev.players.find(p => p.name.toLowerCase() === name.toLowerCase())) {
+        toast({ title: 'Player exists', description: `${name} already joined`, variant: 'destructive' });
+        return prev;
+      }
+      const newPlayer: Player = { id: uuidv4(), name, rebuys: 1, blackCoins: 0 };
+      toast({ title: 'Player Added', description: `${name} joined` });
+      return { players: [...prev.players, newPlayer], lastUpdated: new Date().toISOString() };
+    });
+  }, [updateState, toast]);
 
-  const addPlayer = useCallback(
-    (name: string) => {
-      updateAndPersistState(current => {
-        if (current.players.find((p) => p.name.toLowerCase() === name.toLowerCase())) {
-            toast({
-              title: 'Player already exists',
-              description: `${name} is already at the table.`,
-              variant: 'destructive',
-            });
-            return current;
-        }
-        const newPlayer: Player = {
-            id: uuidv4(),
-            name,
-            rebuys: 1,
-            blackCoins: 0,
-        };
-        toast({
-            title: 'Player Joined',
-            description: `${name} has joined the table with 1 buy-in.`,
+  const deletePlayer = useCallback((id: string) => {
+    updateState(prev => {
+      const player = prev.players.find(p => p.id === id);
+      if (player) toast({ title: 'Player Removed', description: player.name, variant: 'destructive' });
+      return { players: prev.players.filter(p => p.id !== id), lastUpdated: new Date().toISOString() };
+    });
+  }, [updateState, toast]);
+
+  const addRebuy = useCallback((id: string) => {
+    let playerName = '';
+    updateState(prev => {
+        const newPlayers = prev.players.map(p => {
+            if (p.id === id) {
+                playerName = p.name;
+                return { ...p, rebuys: p.rebuys + 1 };
+            }
+            return p;
         });
         return {
-            players: [...current.players, newPlayer],
-            lastUpdated: new Date().toISOString(),
-        };
-      });
-    },
-    [updateAndPersistState, toast]
-  );
-
-  const deletePlayer = useCallback(
-    (playerId: string) => {
-      updateAndPersistState(current => {
-        const player = current.players.find((p) => p.id === playerId);
-        if(player) {
-          toast({
-            title: 'Player Removed',
-            description: `${player.name} has been removed from the table.`,
-            variant: 'destructive',
-          });
-          return {
-            players: current.players.filter((p) => p.id !== playerId),
-            lastUpdated: new Date().toISOString(),
-          };
-        }
-        return current;
-      });
-    },
-    [updateAndPersistState, toast]
-  );
-
-  const addRebuy = useCallback(
-    (playerId: string) => {
-      updateAndPersistState(current => {
-        const player = current.players.find((p) => p.id === playerId);
-        if(player) {
-            toast({
-                title: 'Re-buy Added',
-                description: `${player.name} has re-bought.`,
-            });
-            return {
-                players: current.players.map((p) =>
-                    p.id === playerId ? { ...p, rebuys: p.rebuys + 1 } : p
-                ),
-                lastUpdated: new Date().toISOString(),
-            };
-        }
-        return current;
-      });
-    },
-    [updateAndPersistState, toast]
-  );
-
-  const removeRebuy = useCallback(
-    (playerId: string) => {
-      updateAndPersistState(current => {
-        const player = current.players.find((p) => p.id === playerId);
-        if (player) {
-            if (player.rebuys <= 1) {
-                toast({
-                  title: 'Action Not Allowed',
-                  description: 'Cannot remove the initial buy-in.',
-                  variant: 'destructive',
-                });
-                return current;
-            }
-            toast({
-                title: 'Re-buy Removed',
-                description: `A re-buy was removed for ${player.name}.`,
-                variant: 'destructive',
-            });
-            return {
-                players: current.players.map((p) =>
-                  p.id === playerId ? { ...p, rebuys: Math.max(1, p.rebuys - 1) } : p
-                ),
-                lastUpdated: new Date().toISOString(),
-            };
-        }
-        return current;
-      });
-    },
-    [updateAndPersistState, toast]
-  );
-
-  const getPlayerByName = useCallback(
-    (name: string): Player | undefined => {
-      return gameState?.players.find((p) => p.name.toLowerCase() === name.toLowerCase());
-    },
-    [gameState?.players]
-  );
-
-  const updateBlackCoins = useCallback((playerId: string, count: number) => {
-    updateAndPersistState(current => {
-        const validCount = Math.max(0, count);
-        return {
-            players: current.players.map((p) =>
-                p.id === playerId ? { ...p, blackCoins: validCount } : p
-            ),
+            players: newPlayers,
             lastUpdated: new Date().toISOString(),
         };
     });
-  }, [updateAndPersistState]);
+    if (playerName) {
+        toast({ title: 'Rebuy Added', description: `For ${playerName}` });
+    }
+  }, [updateState, toast]);
 
-  const value = useMemo(
-    () => ({
-      players: gameState?.players ?? [],
-      lastUpdated: gameState?.lastUpdated ?? null,
-      isLoading,
-      addPlayer,
-      deletePlayer,
-      addRebuy,
-      removeRebuy,
-      getPlayerByName,
-      updateBlackCoins,
-    }),
-    [
-      gameState,
-      isLoading,
-      addPlayer,
-      deletePlayer,
-      addRebuy,
-      removeRebuy,
-      getPlayerByName,
-      updateBlackCoins,
-    ]
-  );
+  const removeRebuy = useCallback((id: string) => {
+    updateState(prev => {
+        let playerCanRemove = false;
+        const player = prev.players.find(p => p.id === id);
+        if (player && player.rebuys <= 1) {
+            toast({
+                title: 'Action Not Allowed',
+                description: 'Cannot remove the initial buy-in.',
+                variant: 'destructive',
+            });
+        } else {
+            playerCanRemove = true;
+        }
+
+        if(playerCanRemove) {
+            if (player) toast({ title: 'Rebuy Removed', description: `For ${player.name}`, variant: 'destructive' });
+            return {
+                players: prev.players.map(p => {
+                    if (p.id === id) return { ...p, rebuys: p.rebuys - 1 };
+                    return p;
+                }),
+                lastUpdated: new Date().toISOString(),
+            }
+        }
+        return prev;
+    });
+  }, [updateState, toast]);
+
+  const updateBlackCoins = useCallback((id: string, count: number) => {
+    updateState(prev => ({
+      players: prev.players.map(p => p.id === id ? { ...p, blackCoins: Math.max(0, count) } : p),
+      lastUpdated: new Date().toISOString(),
+    }));
+  }, [updateState]);
+
+  const getPlayerByName = useCallback((name: string) => {
+    return gameState.players.find(p => p.name.toLowerCase() === name.toLowerCase());
+  }, [gameState.players]);
+
+  const value = useMemo(() => ({
+    players: gameState.players,
+    lastUpdated: gameState.lastUpdated,
+    isLoading,
+    addPlayer,
+    deletePlayer,
+    addRebuy,
+    removeRebuy,
+    updateBlackCoins,
+    getPlayerByName,
+  }), [gameState, isLoading, addPlayer, deletePlayer, addRebuy, removeRebuy, updateBlackCoins, getPlayerByName]);
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 }
 
-// --- Hook ---
 export function useGame() {
   const context = useContext(GameContext);
-  if (context === undefined) {
-    throw new Error('useGame must be used within a GameProvider');
-  }
+  if (!context) throw new Error('useGame must be inside GameProvider');
   return context;
 }
