@@ -15,6 +15,7 @@ export interface GameContextType {
   isLoading: boolean;
   addPlayer: (name: string) => void;
   deletePlayer: (id: string) => void;
+  deleteAllPlayers: () => void;
   addRebuy: (id: string) => void;
   removeRebuy: (id: string) => void;
   updateBlackCoins: (id: string, count: number) => void;
@@ -93,6 +94,19 @@ export function GameProvider({ children }: { children: ReactNode }) {
     [firestore, players, toast]
   );
 
+  const deleteAllPlayers = useCallback(() => {
+    if (!firestore || !players) return;
+    players.forEach(player => {
+        const playerDocRef = doc(firestore, 'players', player.id);
+        deleteDocumentNonBlocking(playerDocRef);
+    });
+    toast({
+        title: 'Game Reset',
+        description: 'All players have been removed from the table.',
+        variant: 'destructive',
+    });
+  }, [firestore, players, toast]);
+
   const addRebuy = useCallback(
     (id: string) => {
       if (!firestore) return;
@@ -149,6 +163,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       isLoading: isPlayersLoading || !isClient,
       addPlayer,
       deletePlayer,
+      deleteAllPlayers,
       addRebuy,
       removeRebuy,
       updateBlackCoins,
@@ -160,6 +175,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       isClient,
       addPlayer,
       deletePlayer,
+      deleteAllPlayers,
       addRebuy,
       removeRebuy,
       updateBlackCoins,

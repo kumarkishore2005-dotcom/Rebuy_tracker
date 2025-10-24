@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlayerList } from "./player-list";
-import { DollarSign, Users, Clock } from "lucide-react";
+import { DollarSign, Users, Clock, Trash } from "lucide-react";
+import { ConfirmationDialog } from "../shared/confirmation-dialog";
 
 function AddPlayerForm() {
     const [newPlayerName, setNewPlayerName] = useState("");
@@ -58,6 +59,29 @@ function TotalBuyIns() {
     );
 }
 
+function ResetGame() {
+    const { deleteAllPlayers } = useGame();
+    return (
+        <Card className="border-destructive">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-destructive"><Trash/> Reset Game</CardTitle>
+                <CardDescription>Remove all players and clear the board to start a new game.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <ConfirmationDialog
+                    title="Reset Game?"
+                    description="Are you sure you want to remove all players? This action cannot be undone."
+                    onConfirm={deleteAllPlayers}
+                >
+                    <Button variant="destructive" className="w-full">
+                        Reset Game
+                    </Button>
+                </ConfirmationDialog>
+            </CardContent>
+        </Card>
+    )
+}
+
 function SyncTest() {
     return (
         <div className="fixed bottom-4 right-4 z-50">
@@ -73,9 +97,10 @@ export function DealerView() {
   return (
     <div className="space-y-8">
         <h1 className="text-4xl font-bold font-headline">Dealer Dashboard</h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <AddPlayerForm />
           <TotalBuyIns />
+          <ResetGame />
         </div>
       
         <Card>
