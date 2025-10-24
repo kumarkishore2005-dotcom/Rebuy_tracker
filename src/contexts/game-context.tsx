@@ -9,7 +9,6 @@ import {
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking,
 } from '@/firebase/non-blocking-updates';
-import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
 import { useUser } from '@/firebase/auth/use-user';
 
 
@@ -29,21 +28,18 @@ export const GameContext = createContext<GameContextType | undefined>(undefined)
 
 export function GameProvider({ children }: { children: ReactNode }) {
   const firestore = useFirestore();
-  const auth = useAuth();
-  const { user, isUserLoading } = useUser();
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (auth && !user && !isUserLoading) {
-      initiateAnonymousSignIn(auth);
-    }
-  }, [auth, user, isUserLoading]);
+  // We are no longer using Firebase Auth for this simple app.
+  // The useUser and auth hooks are removed to simplify.
 
   const playersColRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
+    if (!firestore) return null;
+    // This collection is now publicly readable as per the simplified model
     return collection(firestore, 'players');
-  }, [firestore, user]);
+  }, [firestore]);
 
+  // We assume the rules will be set to allow public reads for the 'players' collection
   const { data: players, isLoading: isPlayersLoading } = useCollection<Omit<Player, 'id'>>(playersColRef);
 
   const getPlayerByName = useCallback(
@@ -70,6 +66,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         blackCoins: 0,
         createdAt: Timestamp.now(),
       };
+      // All writes are now non-blocking and assumed to succeed from the dealer view.
       addDocumentNonBlocking(playersColRef, newPlayer);
       toast({
         title: 'Player Added',
@@ -149,8 +146,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       players: players || [],
-      lastUpdated: null,
-      isLoading: isUserLoading || isPlayersLoading,
+      lastUpdated: null, // This is now handled by Firestore's real-time nature
+      isLoading: isPlayersLoading,
       addPlayer,
       deletePlayer,
       addRebuy,
@@ -160,7 +157,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }),
     [
       players,
-      isUserLoading,
       isPlayersLoading,
       addPlayer,
       deletePlayer,

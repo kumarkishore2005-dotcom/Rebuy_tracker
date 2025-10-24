@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useGame } from "@/contexts/game-context";
@@ -14,12 +13,13 @@ interface PlayerViewProps {
 
 function SyncTest() {
     const { lastUpdated } = useGame();
-    const formattedTime = lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : 'N/A';
+    // Since we're using Firestore, we don't have a simple 'lastUpdated' timestamp from localStorage.
+    // We can show a generic sync status.
     return (
         <div className="fixed bottom-4 right-4 z-50">
             <div className="flex items-center gap-2 rounded-full bg-muted px-4 py-2 text-sm font-medium text-muted-foreground shadow-lg">
                 <Clock className="h-5 w-5 text-primary" />
-                <span>Last Sync: <strong>{formattedTime}</strong></span>
+                <span>State: <strong>Live</strong></span>
             </div>
         </div>
     )
@@ -44,7 +44,7 @@ function PlayerViewSkeleton() {
               <Skeleton className="h-14 w-12 mt-1" />
             </div>
           </div>
-          <Skeleton className="h-12 w-36" />
+          {/* Player cannot request re-buy directly anymore */}
         </CardContent>
       </Card>
       <Card>
@@ -65,7 +65,7 @@ function PlayerViewSkeleton() {
 }
 
 export function PlayerView({ playerName }: PlayerViewProps) {
-  const { getPlayerByName, addRebuy, isLoading } = useGame();
+  const { getPlayerByName, isLoading } = useGame();
   
   if (isLoading) {
     return <PlayerViewSkeleton />;
@@ -106,20 +106,14 @@ export function PlayerView({ playerName }: PlayerViewProps) {
               <p className="text-5xl font-bold">{endCount}</p>
             </div>
           </div>
-          <Button 
-            onClick={() => addRebuy(player.id)} 
-            className="bg-accent text-accent-foreground hover:bg-accent/90"
-            size="lg"
-          >
-            Request Re-buy
-          </Button>
+          {/* The button for requesting a re-buy is removed. The dealer now handles this. */}
         </CardContent>
       </Card>
       
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Users /> Table Standings</CardTitle>
-          <CardDescription>See how you stack up against the competition.</CardDescription>
+          <CardDescription>See how you stack up against the competition. Contact the dealer for re-buys.</CardDescription>
         </CardHeader>
         <CardContent>
           <PlayerList highlightPlayerName={playerName} />
