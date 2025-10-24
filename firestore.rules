@@ -1,45 +1,37 @@
 /**
- * @fileoverview Firestore Security Rules for the poker game application.
+ * @file Firebase Security Rules for Firestore.
  *
- * Core Philosophy:
- * This ruleset prioritizes security and data integrity, focusing on controlling
- * access to player data. It explicitly denies unauthorized access to prevent
- * malicious data manipulation.
+ * @core_philosophy This ruleset is in prototyping mode, prioritizing strong
+ *   authorization over strict data validation to allow for rapid development.
+ *   It enforces that only authenticated users can create player documents,
+ *   and does not currently restrict data based on its contents.
  *
- * Data Structure:
- * - All player data is stored in the `/players/{playerId}` collection.
+ * @data_structure Data is stored in a flat collection at the root: `/players/{playerId}`.
  *
- * Key Security Decisions:
- * - Players data is publicly readable.
- * - Players data can only be created, updated and deleted by authenticated users.
- *
- * Denormalization for Authorization:
- *   N/A - No denormalization is used in this ruleset.
- *
- * Structural Segregation:
- *   N/A - No structural segregation is used in this ruleset.
+ * @key_security_decisions
+ *   - Users can only create their own player documents.
+ *   - No listing of players by other users is allowed.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Manages access to individual player documents.
+     * @description Allows authenticated users to create player documents.
      * @path /players/{playerId}
-     * @allow (get, list): Any user can read data about players.
-     * @allow (create): Authenticated users can create new players.
-     * @allow (update, delete): Authenticated users can update or delete their own player data.
-     * @deny (create, update, delete): Unauthenticated users cannot create, update or delete player data.
-     * @principle Enforces authentication for writing operations and makes the player data publicly readable.
+     * @allow (create) - An authenticated user with a valid `auth.uid` can create a player document.
+     * @deny (create) - An unauthenticated user (no `auth.uid`) cannot create a player document.
+     * @principle Enforces authentication for creating player documents.
      */
     match /players/{playerId} {
-      allow get, list: if true;
+      allow get: if false;
+      allow list: if false;
+
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+      allow update: if false;
+      allow delete: if false;
     }
 
-    // Helper function to determine if a user is signed in.
     function isSignedIn() {
       return request.auth != null;
     }
