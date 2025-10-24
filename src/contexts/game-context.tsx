@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, {
@@ -15,6 +14,11 @@ import { useToast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
 
 const LOCAL_STORAGE_KEY = 'rebuy-tracker-game-state';
+
+interface GameState {
+  players: Player[];
+  lastUpdated: string | null;
+}
 
 // --- Context ---
 interface GameContextType {
@@ -38,60 +42,34 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true); // Start in loading state
   const { toast } = useToast();
 
-  // Unified function to update state and localStorage
-  const setGameState = useCallback((newPlayers: Player[] | ((prevState: Player[]) => Player[])) => {
-    const timestamp = new Date().toISOString();
-    setLastUpdated(timestamp);
-
-    setPlayers(prevState => {
-        const updatedPlayers = typeof newPlayers === 'function' ? newPlayers(prevState) : newPlayers;
-        try {
-          if (typeof window !== 'undefined') {
-            const stateToSave = {
-                players: updatedPlayers,
-                lastUpdated: timestamp,
-            }
-            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
-          }
-        } catch (error) {
-          console.error('Failed to save state to localStorage', error);
-        }
-        return updatedPlayers;
-    });
-  }, []);
-
   // Load from localStorage on mount, only on the client side
   useEffect(() => {
-    setIsLoading(true);
+    // This effect runs only once on the client after hydration
     try {
-      const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (savedState) {
-        const parsedState = JSON.parse(savedState);
-        setPlayers(parsedState.players || []);
-        setLastUpdated(parsedState.lastUpdated || null);
+      const savedStateJSON = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (savedStateJSON) {
+        const savedState: GameState = JSON.parse(savedStateJSON);
+        setPlayers(savedState.players || []);
+        setLastUpdated(savedState.lastUpdated || null);
       }
     } catch (error) {
       console.error('Failed to load state from localStorage', error);
+      // Set to empty state if parsing fails
       setPlayers([]);
       setLastUpdated(null);
     }
     // Finished loading, switch out of loading state
     setIsLoading(false);
-  }, []);
+  }, []); // Empty dependency array ensures it runs only once on mount
 
   // Listen for changes in other tabs
   useEffect(() => {
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === LOCAL_STORAGE_KEY && event.newValue) {
         try {
-          const newState = JSON.parse(event.newValue);
-          // Check if the data is actually different to avoid unnecessary re-renders
-          if (event.newValue !== JSON.stringify({ players, lastUpdated })) {
-            if (newState && newState.players) {
-              setPlayers(newState.players);
-              setLastUpdated(newState.lastUpdated || null);
-            }
-          }
+          const newState: GameState = JSON.parse(event.newValue);
+          setPlayers(newState.players);
+          setLastUpdated(newState.lastUpdated);
         } catch (error) {
             console.error("Failed to parse state from storage event", error);
         }
@@ -102,11 +80,36 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, [players, lastUpdated]); // Dependency array to ensure the check uses latest state
+  }, []); // No dependencies needed, it's a global listener
+
+
+  // Unified function to update state and persist to localStorage
+  const setAndPersistPlayers = useCallback((newPlayers: Player[] | ((prevPlayers: Player[]) => Player[])) => {
+    const timestamp = new Date().toISOString();
+    // Use the functional form of setState to get the latest state
+    setPlayers(currentPlayers => {
+        const updatedPlayers = typeof newPlayers === 'function' ? newPlayers(currentPlayers) : newPlayers;
+        
+        try {
+            const stateToSave: GameState = {
+                players: updatedPlayers,
+                lastUpdated: timestamp,
+            };
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
+            // Also update the timestamp in our local React state
+            setLastUpdated(timestamp);
+        } catch (error) {
+            console.error('Failed to save state to localStorage', error);
+        }
+
+        return updatedPlayers;
+    });
+  }, []);
+
 
   const addPlayer = useCallback(
     (name: string) => {
-        setGameState(currentPlayers => {
+        setAndPersistPlayers(currentPlayers => {
             if (currentPlayers.find((p: Player) => p.name.toLowerCase() === name.toLowerCase())) {
                 toast({
                   title: 'Player already exists',
@@ -128,12 +131,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
             return [...currentPlayers, newPlayer];
         });
     },
-    [setGameState, toast]
+    [setAndPersistPlayers, toast]
   );
 
   const deletePlayer = useCallback(
     (playerId: string) => {
-        setGameState(currentPlayers => {
+        setAndPersistPlayers(currentPlayers => {
             const player = currentPlayers.find((p: Player) => p.id === playerId);
             if(player) {
               toast({
@@ -146,12 +149,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
             return currentPlayers;
         });
     },
-    [setGameState, toast]
+    [setAndPersistPlayers, toast]
   );
 
   const addRebuy = useCallback(
     (playerId: string) => {
-        setGameState(currentPlayers => {
+        setAndPersistPlayers(currentPlayers => {
             const player = currentPlayers.find((p: Player) => p.id === playerId);
             if(player) {
                 toast({
@@ -165,12 +168,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
             return currentPlayers;
         });
     },
-    [setGameState, toast]
+    [setAndPersistPlayers, toast]
   );
 
   const removeRebuy = useCallback(
     (playerId: string) => {
-        setGameState(currentPlayers => {
+        setAndPersistPlayers(currentPlayers => {
             const player = currentPlayers.find((p: Player) => p.id === playerId);
             if (player) {
                 if (player.rebuys <= 1) {
@@ -193,7 +196,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
             return currentPlayers;
         });
     },
-    [setGameState, toast]
+    [setAndPersistPlayers, toast]
   );
 
   const getPlayerByName = useCallback(
@@ -204,13 +207,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
   );
 
   const updateBlackCoins = useCallback((playerId: string, count: number) => {
-    setGameState(currentPlayers => {
+    setAndPersistPlayers(currentPlayers => {
         const validCount = Math.max(0, count);
         return currentPlayers.map((p: Player) =>
             p.id === playerId ? { ...p, blackCoins: validCount } : p
         );
     });
-  }, [setGameState]);
+  }, [setAndPersistPlayers]);
 
   const value = useMemo(
     () => ({
