@@ -47,13 +47,5 @@
   },
   "auth": {
     "providers": ["google.com", "password"]
-  },
-  "firestore": {
-    "/players/{playerId}": {
-      "schema": {
-        "$ref": "#/entities/Player"
-      },
-      "description": "Stores information about each poker player."
-    }
   }
 }

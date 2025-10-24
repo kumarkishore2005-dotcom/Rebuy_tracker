@@ -7,15 +7,11 @@ import {
   ReactNode,
   useCallback,
   useMemo,
+  useState,
+  useEffect,
 } from 'react';
 import type { Player } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import {
-  addDocumentNonBlocking,
-  updateDocumentNonBlocking,
-} from '@/firebase/non-blocking-updates';
-import { collection, doc } from 'firebase/firestore';
 
 interface GameContextType {
   players: Player[];
@@ -29,28 +25,18 @@ interface GameContextType {
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
-const PLAYERS_COLLECTION = 'players';
-
 export function GameProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
-  const firestore = useFirestore();
-  const { user, isUserLoading } = useUser();
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Only create the query if the user is logged in.
-  const playersColRef = useMemoFirebase(
-    () => (user ? collection(firestore, PLAYERS_COLLECTION) : null),
-    [firestore, user]
-  );
-  
-  const { data: players = [], isLoading: isCollectionLoading } = useCollection<Player>(playersColRef);
-
-  // The overall loading state depends on both user auth and collection loading.
-  const isLoading = isUserLoading || (!!playersColRef && isCollectionLoading);
+  // Simulate initial loading
+  useEffect(() => {
+    setIsLoading(false);
+  }, []);
 
   const addPlayer = useCallback(
     (name: string) => {
-      if (!playersColRef) return; // Don't do anything if not logged in
-
       const existingPlayer = players.find(
         (p) => p.name.toLowerCase() === name.toLowerCase()
       );
@@ -62,63 +48,82 @@ export function GameProvider({ children }: { children: ReactNode }) {
         });
         return;
       }
-
-      const newPlayer: Omit<Player, 'id'> = {
+      
+      const newPlayer: Player = {
+        id: Date.now().toString(), // Use timestamp for unique ID in local state
         name,
         rebuys: 1,
         blackCoins: 0,
       };
 
-      addDocumentNonBlocking(playersColRef, newPlayer);
+      setPlayers((prev) => [...prev, newPlayer]);
 
       toast({
         title: 'Player Joined',
         description: `${name} has joined the table with 1 buy-in.`,
       });
     },
-    [players, playersColRef, toast]
+    [players, toast]
   );
 
   const addRebuy = useCallback(
     (playerId: string) => {
-      const player = players.find((p) => p.id === playerId);
-      if (!player || !firestore) return;
-
-      const playerDocRef = doc(firestore, PLAYERS_COLLECTION, playerId);
-      updateDocumentNonBlocking(playerDocRef, { rebuys: player.rebuys + 1 });
+      let playerName = '';
+      setPlayers((prev) =>
+        prev.map((p) => {
+          if (p.id === playerId) {
+            playerName = p.name;
+            return { ...p, rebuys: p.rebuys + 1 };
+          }
+          return p;
+        })
+      );
       
-      toast({
-        title: 'Re-buy Added',
-        description: `${player.name} has re-bought.`,
-      });
+      if(playerName){
+        toast({
+            title: 'Re-buy Added',
+            description: `${playerName} has re-bought.`,
+        });
+      }
     },
-    [firestore, players, toast]
+    [toast]
   );
 
   const removeRebuy = useCallback(
     (playerId: string) => {
-      const player = players.find((p) => p.id === playerId);
-      if (!player || !firestore) return;
-      
-      if (player.rebuys <= 1) {
-        toast({
-          title: 'Action Not Allowed',
-          description: 'Cannot remove the initial buy-in.',
-          variant: 'destructive',
-        });
-        return;
-      }
-      
-      const playerDocRef = doc(firestore, PLAYERS_COLLECTION, playerId);
-      updateDocumentNonBlocking(playerDocRef, { rebuys: player.rebuys - 1 });
+        let playerName = '';
+        let canRemove = false;
 
-      toast({
-        title: 'Re-buy Removed',
-        description: `A re-buy was removed for ${player.name}.`,
-        variant: 'destructive',
-      });
+        const player = players.find((p) => p.id === playerId);
+
+        if (!player) return;
+
+        if (player.rebuys <= 1) {
+            toast({
+              title: 'Action Not Allowed',
+              description: 'Cannot remove the initial buy-in.',
+              variant: 'destructive',
+            });
+            return;
+        }
+
+        setPlayers((prev) =>
+            prev.map((p) => {
+                if (p.id === playerId) {
+                    playerName = p.name;
+                    return { ...p, rebuys: p.rebuys - 1 };
+                }
+                return p;
+            })
+        );
+      
+        toast({
+            title: 'Re-buy Removed',
+            description: `A re-buy was removed for ${playerName}.`,
+            variant: 'destructive',
+        });
     },
-    [firestore, players, toast]
+    [players, toast]
   );
 
   const getPlayerByName = useCallback(
@@ -129,11 +134,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
   );
 
   const updateBlackCoins = useCallback((playerId: string, count: number) => {
-    if (!firestore) return;
     const validCount = count >= 0 ? count : 0;
-    const playerDocRef = doc(firestore, PLAYERS_COLLECTION, playerId);
-    updateDocumentNonBlocking(playerDocRef, { blackCoins: validCount });
-  }, [firestore]);
+    setPlayers((prev) => 
+        prev.map(p => p.id === playerId ? {...p, blackCoins: validCount} : p)
+    );
+  }, []);
 
   const value = useMemo(
     () => ({

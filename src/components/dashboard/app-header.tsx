@@ -5,20 +5,14 @@ import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { LogOut, User, UserCog } from "lucide-react";
-import { useAuth, useUser } from "@/firebase";
-import { signOut } from "firebase/auth";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function AppHeader() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const auth = useAuth();
-  const { user } = useUser();
   const role = searchParams.get("role");
   const name = searchParams.get("name");
 
-  const handleSignOut = async () => {
-    await signOut(auth);
+  const handleExit = () => {
     router.push('/');
   };
   
@@ -30,38 +24,24 @@ export function AppHeader() {
           <span className="text-xl font-bold font-headline">Rebuy Tracker</span>
         </Link>
         <div className="flex items-center gap-4">
-          {role === 'dealer' && user && (
+          {role === 'dealer' && (
              <div className="flex items-center gap-2">
                 <div className="flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-sm font-medium text-muted-foreground">
                     <UserCog className="h-4 w-4" />
                     <span>Dealer</span>
                 </div>
-                <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.photoURL || ''} alt={user.displayName || ''} />
-                    <AvatarFallback>{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
-                </Avatar>
              </div>
           )}
-          {role === 'player' ? (
+          {role === 'player' && name && (
              <div className="flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-sm font-medium text-muted-foreground">
                 <User className="h-4 w-4" />
                 <span>Player: {name}</span>
             </div>
-          ) : null }
-           {(role === 'player') && (
-             <Button asChild variant="outline" size="sm">
-                <Link href="/">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Exit
-                </Link>
-            </Button>
-           )}
-           {user && role === 'dealer' && (
-             <Button variant="outline" size="sm" onClick={handleSignOut}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sign Out
-            </Button>
-           )}
+          )}
+          <Button variant="outline" size="sm" onClick={handleExit}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Exit to Home
+          </Button>
         </div>
       </div>
     </header>
