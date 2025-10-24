@@ -53,9 +53,7 @@ function PlayerListSkeleton() {
 export function PlayerList({ isDealer = false, highlightPlayerName }: PlayerListProps) {
   const { players, addRebuy, removeRebuy, deletePlayer, updateBlackCoins, isLoading } = useGame();
 
-  const sortedPlayers = useMemo(() => {
-    return [...players].sort((a, b) => b.rebuys - a.rebuys);
-  }, [players]);
+  const sortedPlayers = [...players].sort((a, b) => b.rebuys - a.rebuys);
 
   if (isLoading) {
     return <PlayerListSkeleton />;

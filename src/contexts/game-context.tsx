@@ -42,7 +42,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return collection(firestore, 'players');
   }, [firestore, isClient]);
 
-  const { data: players, isLoading: isPlayersLoading } = useCollection<Omit<Player, 'id'>>(playersColRef);
+  const { data: players, isLoading: isPlayersLoading } = useCollection<Player>(playersColRef);
 
   const getPlayerByName = useCallback(
     (name: string) => {
@@ -159,8 +159,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(
     () => ({
-      // Perform a deep copy to ensure components receive a fresh array of new objects
-      players: players ? JSON.parse(JSON.stringify(players)) : [],
+      players: players || [],
       isLoading: isPlayersLoading || !isClient,
       addPlayer,
       deletePlayer,
