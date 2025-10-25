@@ -2,41 +2,47 @@
  * @fileoverview Firestore Security Rules for the poker game application.
  *
  * Core Philosophy:
- * This ruleset prioritizes security for player data. It allows any logged-in user to read (get and list) player data, but restricts write operations to prevent unauthorized modification or deletion.
+ * This ruleset focuses on securing player data. All players are anonymous.
+ * It ensures only authenticated users can update their own player documents.
  *
  * Data Structure:
- * The application stores player data in a top-level `/players/{playerId}` collection.
+ * - /players/{playerId}: Stores player information. The `playerId` matches the user's `auth.uid`.
  *
  * Key Security Decisions:
- * - Player listing is open to all authenticated users.
- * - Writes to player documents are forbidden.
- *
- * Rationale:
- * Given the error message "Missing or insufficient permissions" for a `list` operation on `/players`, the initial rules were likely too restrictive.
- * This update opens read access (get and list) to the `players` collection for all authenticated users. Write access remains denied to prevent unauthorized data manipulation.
- * If finer-grained access control is required in the future (e.g., allowing players to modify their own data), the rules will need to be updated with more specific logic.
+ * - Players can only update their own player documents.
+ * - Data validation is relaxed to enable rapid prototyping. Only essential auth checks are performed.
+ * - The rules implicitly trust the server-side logic to maintain game state and enforce fair play.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Grants read access to player data for all authenticated users, but denies all write operations.
+     * @description Rules for the /players/{playerId} collection.
      * @path /players/{playerId}
-     * @allow (get, list) An authenticated user can read player data.
-     * @deny (create, update, delete) No user can create, update, or delete player data.
-     * @principle Allows public read access while restricting all writes.
+     * @allow (update) User with UID 'Y9U1YvBBHRXr3wNrKWjE3CvNaL02' can update the document with ID 'Y9U1YvBBHRXr3wNrKWjE3CvNaL02'.
+     * @deny (update) User with UID 'otherUserId' cannot update the document with ID 'Y9U1YvBBHRXr3wNrKWjE3CvNaL02'.
+     * @principle Enforces document ownership for writes.
      */
     match /players/{playerId} {
-      allow get, list: if isSignedIn();
+      allow get: if true;
+      allow list: if false;
       allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow update: if isExistingOwner(playerId);
+      allow delete: if isExistingOwner(playerId);
     }
+  }
 
-    // Helper function to check if the user is signed in.
-    function isSignedIn() {
-      return request.auth != null;
-    }
+  // Helper functions
+  function isSignedIn() {
+    return request.auth != null;
+  }
+
+  function isOwner(userId) {
+    return isSignedIn() && request.auth.uid == userId;
+  }
+
+  function isExistingOwner(userId) {
+    return isOwner(userId) && resource != null;
   }
 }
