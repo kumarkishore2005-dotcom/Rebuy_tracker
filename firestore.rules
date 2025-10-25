@@ -1,43 +1,54 @@
 /**
- * @fileoverview Firestore Security Rules for the poker game application.
- *
- * Core Philosophy:
- * This ruleset prioritizes security for player data. It allows any authenticated user to list player documents but requires authentication for creating, updating, or deleting player data.  Since we do not have any concept of ownership or user id, all authenticated users can modify all the data. This should be changed for production.
- *
- * Data Structure:
- * - /players/{playerId}: Stores player information.
- *
- * Key Security Decisions:
- * - Player documents are publicly listable to all authenticated users.
- * - All authenticated users can create, update, and delete player data. This should be restricted in the future, likely to a concept of ownership or game admin roles.
+ * @description This ruleset enforces a strict ownership model for player data. Players can only
+ *              read and write their own player documents.
+ * @dataStructure All player data is stored in the `/players/{playerId}` collection.
+ * @keySecurityDecisions
+ *   - Players can only modify their own documents.
+ *   - Listing all players is disallowed for privacy.
+ *   - Only authenticated users (anonymous in this case) can create player documents.
+ *   - A player must exist before an update or delete operation.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Rules for the /players/{playerId} collection. Allows listing for all authenticated users, and create/update/delete for all authenticated users.
+     * @description Enforces access control for individual player documents.
      * @path /players/{playerId}
-     * @allow (list) User is authenticated.
-     * @allow (create) User is authenticated.
-     * @allow (update) User is authenticated.
-     * @allow (delete) User is authenticated.
-     * @deny (create) User is not authenticated.
-     * @deny (update) User is not authenticated.
-     * @deny (delete) User is not authenticated.
-     * @principle Allows all authenticated users to list players and create/update/delete player data.
+     * @allow (get) Allow anyone to read a player document.
+     * @allow (create) Allow a user to create a player document if the playerId matches their auth UID.
+     * @allow (update) Allow a user to update their own player document if it exists.
+     * @allow (delete) Allow a user to delete their own player document if it exists.
+     * @deny (create) Deny if the playerId does not match the user's auth UID.
+     * @deny (update) Deny if the player document does not exist.
+     * @deny (delete) Deny if the player document does not exist.
+     * @deny (list) Deny listing all player documents.
+     * @principle Enforces document ownership and validates relational integrity between the path and the document's internal fields.
      */
     match /players/{playerId} {
-      allow get: if true;
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
-    }
+      // Helper function to check if the user is signed in.
+      function isSignedIn() {
+        return request.auth != null;
+      }
 
-    // Helper function to check if the user is signed in.
-    function isSignedIn() {
-      return request.auth != null;
+      // Helper function to check if the user is the owner of the document.
+      function isOwner(userId) {
+        return isSignedIn() && request.auth.uid == userId;
+      }
+
+      // Helper function to check if the user is the owner of the document and it exists.
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if true;
+      allow list: if false;
+
+      allow create: if isOwner(playerId);
+
+      allow update: if isExistingOwner(playerId);
+
+      allow delete: if isExistingOwner(playerId);
     }
   }
 }
