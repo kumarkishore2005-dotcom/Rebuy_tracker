@@ -9,6 +9,9 @@ import {
   QuerySnapshot,
   CollectionReference,
 } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
+
 
 /** Utility type to add an 'id' field to a given type T. */
 export type WithId<T> = T & { id: string };
@@ -20,7 +23,7 @@ export type WithId<T> = T & { id: string };
 export interface UseCollectionResult<T> {
   data: WithId<T>[] | null; // Document data with ID, or null.
   isLoading: boolean;       // True if loading.
-  error: FirestoreError | null; // Error object, or null.
+  error: FirestoreError | Error | null; // Error object, or null.
 }
 
 /**
@@ -43,7 +46,7 @@ export function useCollection<T = any>(
 
   const [data, setData] = useState<StateDataType>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true); // Start loading initially
-  const [error, setError] = useState<FirestoreError | null>(null);
+  const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
     if (!targetRefOrQuery) {
@@ -65,10 +68,17 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (err: FirestoreError) => {
-        console.error("Error in useCollection:", err);
-        setError(err);
+        const contextualError = new FirestorePermissionError({
+          operation: 'list',
+          path: targetRefOrQuery.path,
+        });
+
+        setError(contextualError);
         setData(null);
         setIsLoading(false);
+
+        // Trigger global error propagation
+        errorEmitter.emit('permission-error', contextualError);
       }
     );
 
