@@ -31,7 +31,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const auth = useAuth();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
-  const [showPlayerCount, setShowPlayerCount] = useState(true);
+  const [showPlayerCount, setShowPlayerCount] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
