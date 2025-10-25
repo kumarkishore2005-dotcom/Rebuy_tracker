@@ -1,67 +1,43 @@
 /**
- * @fileoverview Firestore Security Rules for the poker game application.
- *
- * Core Philosophy:
- * This ruleset enforces a user-ownership model where each player document
- * is only accessible and modifiable by the player who created it.
- *
- * Data Structure:
- * The application stores player data in the `/players/{playerId}` collection.
- * Each document contains information about a player, including their name,
- * coins, rebuy timestamps, and rebuy request status.
- *
- * Key Security Decisions:
- * - Players can only create, read, update, and delete their own player documents.
- * - Listing of player documents is disallowed to prevent information leakage.
- *
- * Denormalization for Authorization:
- * The `playerId` is used in the document path (`/players/{playerId}`) and
- * is required to match the authenticated user's UID on creation. This ensures
- * that a player can only create a document with their own ID.  The rules
- * then enforce that this `playerId` cannot be changed after creation,
- * guaranteeing immutable ownership.
+ * @file Firestore Security Rules
+ * @core_philosophy This ruleset enforces a user-ownership model for player data. Each player can only read, update, or delete their own player document.
+ * @data_structure All player data is stored under the `/players/{playerId}` path.
+ * @key_security_decisions Players can only access their own documents, and cannot list all players.
+ * @denormalization For simplicity and performance, authorization relies on the `playerId` path parameter matching the authenticated user's UID. No data denormalization is required in this simple example.
+ * @structural_segregation There is no segregation of public vs. private data. All player data is considered private.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to individual player documents.
+     * @description Controls access to player documents.
      * @path /players/{playerId}
-     * @allow (create) User creates a new player document with their own ID.
-     * @allow (get, update, delete) User reads, updates, or deletes their own player document.
-     * @deny (create) User attempts to create a player document with an ID that doesn't match their own.
-     * @deny (get, update, delete) User attempts to read, update, or delete another user's player document.
-     * @deny (list) Prevents listing of all player documents.
-     * @principle Enforces document ownership; users can only access their own data.
+     * @allow (create) - A player can create their own document if the `playerId` matches their `auth.uid`.
+     * @allow (get, update, delete) - A player can read, update, or delete their own document if the `playerId` matches their `auth.uid`.
+     * @deny (create) - A player cannot create a document with a `playerId` that does not match their `auth.uid`.
+     * @deny (get, update, delete) - A player cannot read, update, or delete another player's document.
+     * @principle Enforces document ownership for all operations.
      */
     match /players/{playerId} {
-      // Helper function to check if the user is signed in
+      // Helpers
       function isSignedIn() {
         return request.auth != null;
       }
 
-      // Helper function to check if the user is the owner of the document
       function isOwner(playerId) {
-        return request.auth.uid == playerId;
+        return isSignedIn() && request.auth.uid == playerId;
       }
 
-      // Helper function to check if the user is the owner of an existing document
       function isExistingOwner(playerId) {
         return isOwner(playerId) && resource != null;
       }
 
+      // Permissions
       allow get: if isOwner(playerId);
-      allow list: if false;
-
-      allow create: if isSignedIn() && isOwner(playerId)
-                    && request.resource.data.name is string
-                    && request.resource.data.blackCoins is number
-                    && request.resource.data.hasPendingRebuyRequest is bool;
-      allow update: if isExistingOwner(playerId)
-                    && request.resource.data.name is string
-                    && request.resource.data.blackCoins is number
-                    && request.resource.data.hasPendingRebuyRequest is bool;
+      allow list: if false; // Players cannot list all player documents.
+      allow create: if isOwner(playerId);
+      allow update: if isExistingOwner(playerId);
       allow delete: if isExistingOwner(playerId);
     }
   }
