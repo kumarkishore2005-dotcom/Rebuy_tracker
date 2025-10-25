@@ -1,15 +1,10 @@
+
 'use client';
 import React, { createContext, useContext, useMemo, useCallback, ReactNode, useEffect, useState } from 'react';
 import { useFirestore, useCollection, useAuth, initiateAnonymousSignIn } from '@/firebase';
-import { collection, doc, Timestamp, arrayUnion, arrayRemove, writeBatch, getDocs, query } from 'firebase/firestore';
+import { collection, doc, Timestamp, arrayUnion, arrayRemove, writeBatch, getDocs, query, setDoc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { Player } from '@/lib/types';
-import {
-  addDocumentNonBlocking,
-  updateDocumentNonBlocking,
-  deleteDocumentNonBlocking,
-  setDocumentNonBlocking,
-} from '@/firebase/non-blocking-updates';
 
 export interface GameContextType {
   players: Player[];
@@ -82,7 +77,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         createdAt: now,
         hasPendingRebuyRequest: false,
       };
-      addDocumentNonBlocking(playersColRef, newPlayer);
+      addDoc(playersColRef, newPlayer);
       toast({
         title: 'Player Added',
         description: `${name} has joined the game.`,
@@ -105,7 +100,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
             createdAt: now,
             hasPendingRebuyRequest: false,
         };
-        addDocumentNonBlocking(playersColRef, newPlayer);
+        addDoc(playersColRef, newPlayer);
         console.log(`Player ${name} created.`);
     } else {
         console.log(`Player ${name} already exists.`);
@@ -119,7 +114,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       if (!firestore) return;
       const playerDocRef = doc(firestore, 'players', id);
       const player = players?.find(p => p.id === id);
-      deleteDocumentNonBlocking(playerDocRef);
+      deleteDoc(playerDocRef);
       if (player) {
         toast({
           title: 'Player Removed',
@@ -158,7 +153,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       const player = players?.find(p => p.id === id);
       if (player) {
         const playerDocRef = doc(firestore, 'players', id);
-        updateDocumentNonBlocking(playerDocRef, { 
+        updateDoc(playerDocRef, { 
             rebuyTimestamps: arrayUnion(Timestamp.now()),
             hasPendingRebuyRequest: false 
         });
@@ -176,7 +171,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const player = players?.find(p => p.id === id);
     if (player) {
         const playerDocRef = doc(firestore, 'players', id);
-        updateDocumentNonBlocking(playerDocRef, { hasPendingRebuyRequest: true });
+        updateDoc(playerDocRef, { hasPendingRebuyRequest: true });
         toast({
             title: 'Request Sent',
             description: 'Your rebuy request has been sent to the dealer for approval.',
@@ -189,7 +184,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const player = players?.find(p => p.id === id);
     if (player) {
       const playerDocRef = doc(firestore, 'players', id);
-      updateDocumentNonBlocking(playerDocRef, { 
+      updateDoc(playerDocRef, { 
           rebuyTimestamps: arrayUnion(Timestamp.now()),
           hasPendingRebuyRequest: false 
       });
@@ -215,7 +210,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         }
         const lastRebuy = player.rebuyTimestamps[player.rebuyTimestamps.length - 1];
         const playerDocRef = doc(firestore, 'players', id);
-        updateDocumentNonBlocking(playerDocRef, { rebuyTimestamps: arrayRemove(lastRebuy) });
+        updateDoc(playerDocRef, { rebuyTimestamps: arrayRemove(lastRebuy) });
         toast({
           title: 'Rebuy Removed',
           description: `Removed the last rebuy for ${player.name}.`,
@@ -230,7 +225,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     (id: string, count: number) => {
       if (!firestore) return;
       const playerDocRef = doc(firestore, 'players', id);
-      setDocumentNonBlocking(playerDocRef, { blackCoins: Math.max(0, count) }, { merge: true });
+      setDoc(playerDocRef, { blackCoins: Math.max(0, count) }, { merge: true });
     },
     [firestore]
   );

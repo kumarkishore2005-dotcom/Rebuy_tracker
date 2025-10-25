@@ -92,7 +92,7 @@ export function PlayerList({ isDealer = false, highlightPlayerName }: PlayerList
   const { players, addRebuy, removeRebuy, deletePlayer, updateBlackCoins, isLoading, approveRebuy } = useGame();
 
   const sortedPlayers = useMemo(() => {
-    // Memoizing the sorted list is crucial to prevent re-render issues with real-time data
+    if (!players) return [];
     if (isDealer) {
       // For the dealer, sort by creation time to keep the list static
       return [...players].sort((a, b) => a.createdAt.toMillis() - b.createdAt.toMillis());
