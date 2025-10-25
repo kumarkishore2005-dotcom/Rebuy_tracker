@@ -1,4 +1,3 @@
-
 'use client';
 import React, { createContext, useContext, useMemo, useCallback, ReactNode, useEffect, useState } from 'react';
 import { useFirestore, useCollection, useAuth, initiateAnonymousSignIn } from '@/firebase';
@@ -195,8 +194,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
           hasPendingRebuyRequest: false 
       });
       toast({
-        title: 'Rebuy Confirmed',
-        description: `A rebuy was added for ${player.name}.`,
+        title: 'Rebuy Approved!',
+        description: `Your rebuy for ${player.name} has been approved.`,
       });
     }
   }, [firestore, players, toast]);
