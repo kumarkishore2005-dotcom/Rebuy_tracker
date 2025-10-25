@@ -2,57 +2,39 @@
  * @fileoverview Firestore Security Rules for the poker game application.
  *
  * Core Philosophy:
- * This ruleset enforces a user-ownership model, where each player can only
- * access their own player document. This is enforced by matching the
- * `playerId` path parameter with the authenticated user's UID.
+ * This ruleset prioritizes secure data access based on user authentication.
+ * All write operations require a valid authenticated user. Read operations are public.
  *
  * Data Structure:
- * The Firestore database contains a single collection, `players`, where each document
- * represents a player in the game. The document ID is the same as the player's UID.
+ * The Firestore database consists of a single top-level collection, `/players/{playerId}`,
+ * where each document represents a player in the game.
  *
  * Key Security Decisions:
- * - Players can only read and write their own player documents.
- * - Listing of all players is disallowed to protect privacy.
+ * - Players can be listed by anyone
+ * - Data shape is not strictly enforced during this prototyping phase.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to player documents. Only the player can read or write their own document.
+     * @description Controls access to individual player documents.
      * @path /players/{playerId}
-     * @allow (get) Signed-in user can read their own player document.
-     *   Request: auth.uid = "user123", path = "/players/user123"
-     * @allow (create) Signed-in user can create their own player document.
-     *   Request: auth.uid = "user123", path = "/players/user123"
-     * @allow (update) Signed-in user can update their own player document.
-     *   Request: auth.uid = "user123", path = "/players/user123"
-     * @allow (delete) Signed-in user can delete their own player document.
-     *   Request: auth.uid = "user123", path = "/players/user123"
-     * @deny (get) Signed-in user cannot read another player's document.
-     *   Request: auth.uid = "user123", path = "/players/user456"
-     * @deny (create) Signed-in user cannot create another player's document.
-     *   Request: auth.uid = "user123", path = "/players/user456"
-     * @deny (update) Signed-in user cannot update another player's document.
-     *   Request: auth.uid = "user123", path = "/players/user456"
-     * @deny (delete) Signed-in user cannot delete another player's document.
-     *   Request: auth.uid = "user123", path = "/players/user456"
-     * @principle Enforces document ownership for all operations.
+     * @allow (get, list): Any user can read any player's information.
+     * @allow (create, update, delete): Only authenticated users can modify player data.
+     * @deny (create, update, delete): Operations attempted by unauthenticated users.
+     * @principle Allows listing and getting documents. Authenticated user has write access.
      */
     match /players/{playerId} {
-      function isOwner(playerId) {
-        return request.auth != null && request.auth.uid == playerId;
-      }
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
+    }
 
-      function isExistingOwner(playerId) {
-        return isOwner(playerId) && resource != null;
-      }
-
-      allow get: if isOwner(playerId);
-      allow list: if false;
-      allow create: if isOwner(playerId);
-      allow update: if isExistingOwner(playerId);
-      allow delete: if isExistingOwner(playerId);
+    // Helper Functions
+    function isSignedIn() {
+      return request.auth != null;
     }
   }
 }
