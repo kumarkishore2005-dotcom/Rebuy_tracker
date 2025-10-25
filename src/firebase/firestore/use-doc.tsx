@@ -8,6 +8,8 @@ import {
   FirestoreError,
   DocumentSnapshot,
 } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 /** Utility type to add an 'id' field to a given type T. */
 type WithId<T> = T & { id: string };
@@ -55,7 +57,6 @@ export function useDoc<T = any>(
 
     setIsLoading(true);
     setError(null);
-    // Optional: setData(null); // Clear previous data instantly
 
     const unsubscribe = onSnapshot(
       docRef,
@@ -66,19 +67,23 @@ export function useDoc<T = any>(
           // Document does not exist
           setData(null);
         }
-        setError(null); // Clear any previous error on successful snapshot (even if doc doesn't exist)
+        setError(null); 
         setIsLoading(false);
       },
       (err: FirestoreError) => {
-        console.error("useDoc Error: ", err);
-        setError(err);
+        const contextualError = new FirestorePermissionError({
+          operation: 'get',
+          path: docRef.path,
+        });
+        errorEmitter.emit('permission-error', contextualError);
+        setError(contextualError);
         setData(null);
         setIsLoading(false);
       }
     );
 
     return () => unsubscribe();
-  }, [docRef]); // Re-run if the docRef changes.
+  }, [docRef]); 
 
   return { data, isLoading, error };
 }

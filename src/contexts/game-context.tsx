@@ -5,6 +5,9 @@ import { useFirestore, useCollection, useAuth, initiateAnonymousSignIn } from '@
 import { collection, doc, Timestamp, arrayUnion, arrayRemove, writeBatch, getDocs, query, setDoc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { Player } from '@/lib/types';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
+
 
 export interface GameContextType {
   players: Player[];
@@ -77,7 +80,15 @@ export function GameProvider({ children }: { children: ReactNode }) {
         createdAt: now,
         hasPendingRebuyRequest: false,
       };
-      addDoc(playersColRef, newPlayer);
+
+      addDoc(playersColRef, newPlayer).catch(serverError => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: playersColRef.path,
+            operation: 'create',
+            requestResourceData: newPlayer,
+        }));
+      });
+
       toast({
         title: 'Player Added',
         description: `${name} has joined the game.`,
@@ -100,7 +111,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
             createdAt: now,
             hasPendingRebuyRequest: false,
         };
-        addDoc(playersColRef, newPlayer);
+        addDoc(playersColRef, newPlayer).catch(serverError => {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: playersColRef.path,
+                operation: 'create',
+                requestResourceData: newPlayer,
+            }));
+        });
         console.log(`Player ${name} created.`);
     } else {
         console.log(`Player ${name} already exists.`);
@@ -114,7 +131,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
       if (!firestore) return;
       const playerDocRef = doc(firestore, 'players', id);
       const player = players?.find(p => p.id === id);
-      deleteDoc(playerDocRef);
+
+      deleteDoc(playerDocRef).catch(serverError => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: playerDocRef.path,
+            operation: 'delete',
+        }));
+      });
+
       if (player) {
         toast({
           title: 'Player Removed',
@@ -129,21 +153,29 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const deleteAllPlayers = useCallback(async () => {
     if (!firestore || !playersColRef) return;
 
-    const batch = writeBatch(firestore);
-    const q = query(playersColRef);
-    const snapshot = await getDocs(q);
-    
-    snapshot.docs.forEach(doc => {
-        batch.delete(doc.ref);
-    });
+    try {
+        const batch = writeBatch(firestore);
+        const q = query(playersColRef);
+        const snapshot = await getDocs(q);
+        
+        snapshot.docs.forEach(doc => {
+            batch.delete(doc.ref);
+        });
 
-    await batch.commit();
+        await batch.commit();
 
-    toast({
-        title: 'Game Reset',
-        description: 'All players have been removed.',
-        variant: 'destructive',
-    });
+        toast({
+            title: 'Game Reset',
+            description: 'All players have been removed.',
+            variant: 'destructive',
+        });
+    } catch(serverError) {
+        // This is a complex operation, so we just signal the attempt
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: playersColRef.path,
+            operation: 'delete', // Batch delete can be simplified to a collection-level delete op
+        }));
+    }
   }, [firestore, playersColRef, toast]);
 
 
@@ -153,9 +185,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
       const player = players?.find(p => p.id === id);
       if (player) {
         const playerDocRef = doc(firestore, 'players', id);
-        updateDoc(playerDocRef, { 
+        const updateData = { 
             rebuyTimestamps: arrayUnion(Timestamp.now()),
             hasPendingRebuyRequest: false 
+        };
+        updateDoc(playerDocRef, updateData).catch(serverError => {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: playerDocRef.path,
+                operation: 'update',
+                requestResourceData: updateData,
+            }));
         });
         toast({
           title: 'Rebuy Confirmed',
@@ -171,7 +210,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const player = players?.find(p => p.id === id);
     if (player) {
         const playerDocRef = doc(firestore, 'players', id);
-        updateDoc(playerDocRef, { hasPendingRebuyRequest: true });
+        const updateData = { hasPendingRebuyRequest: true };
+        updateDoc(playerDocRef, updateData).catch(serverError => {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: playerDocRef.path,
+                operation: 'update',
+                requestResourceData: updateData,
+            }));
+        });
         toast({
             title: 'Request Sent',
             description: 'Your rebuy request has been sent to the dealer for approval.',
@@ -184,9 +230,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const player = players?.find(p => p.id === id);
     if (player) {
       const playerDocRef = doc(firestore, 'players', id);
-      updateDoc(playerDocRef, { 
+      const updateData = { 
           rebuyTimestamps: arrayUnion(Timestamp.now()),
           hasPendingRebuyRequest: false 
+      };
+      updateDoc(playerDocRef, updateData).catch(serverError => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: playerDocRef.path,
+            operation: 'update',
+            requestResourceData: updateData,
+        }));
       });
       toast({
         title: 'Rebuy Approved!',
@@ -210,7 +263,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
         }
         const lastRebuy = player.rebuyTimestamps[player.rebuyTimestamps.length - 1];
         const playerDocRef = doc(firestore, 'players', id);
-        updateDoc(playerDocRef, { rebuyTimestamps: arrayRemove(lastRebuy) });
+        const updateData = { rebuyTimestamps: arrayRemove(lastRebuy) };
+        updateDoc(playerDocRef, updateData).catch(serverError => {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: playerDocRef.path,
+                operation: 'update',
+                requestResourceData: updateData,
+            }));
+        });
         toast({
           title: 'Rebuy Removed',
           description: `Removed the last rebuy for ${player.name}.`,
@@ -225,7 +285,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
     (id: string, count: number) => {
       if (!firestore) return;
       const playerDocRef = doc(firestore, 'players', id);
-      setDoc(playerDocRef, { blackCoins: Math.max(0, count) }, { merge: true });
+      const updateData = { blackCoins: Math.max(0, count) };
+      setDoc(playerDocRef, updateData, { merge: true }).catch(serverError => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: playerDocRef.path,
+            operation: 'update',
+            requestResourceData: updateData,
+        }));
+      });
     },
     [firestore]
   );
