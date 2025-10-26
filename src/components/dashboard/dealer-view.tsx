@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlayerList } from "./player-list";
-import { DollarSign, Users, Clock, Trash, Banknote } from "lucide-react";
+import { DollarSign, Users, Clock, Trash, Banknote, Shuffle } from "lucide-react";
 import { ConfirmationDialog } from "../shared/confirmation-dialog";
 import { cn } from "@/lib/utils";
+import { DistroSuggestion } from "./distro-suggestion";
 
 function AddPlayerForm() {
     const [newPlayerName, setNewPlayerName] = useState("");
@@ -108,6 +109,7 @@ function SyncTest() {
 }
 
 export function DealerView() {
+  const { players } = useGame();
   return (
     <div className="space-y-8">
         <h1 className="text-4xl font-bold font-headline">Dealer Dashboard</h1>
@@ -118,8 +120,8 @@ export function DealerView() {
           <ResetGame />
         </div>
       
-        <div className="grid grid-cols-1 gap-8">
-            <Card>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <Card className="lg:col-span-2">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><Users /> Player Standings</CardTitle>
                     <CardDescription>View all players and manage their re-buys.</CardDescription>
@@ -128,6 +130,8 @@ export function DealerView() {
                     <PlayerList isDealer={true} />
                 </CardContent>
             </Card>
+
+            <DistroSuggestion players={players} />
         </div>
 
         <SyncTest />
