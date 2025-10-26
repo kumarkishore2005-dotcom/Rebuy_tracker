@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlayerList } from "./player-list";
-import { DollarSign, Users, Clock, Trash } from "lucide-react";
+import { DollarSign, Users, Clock, Trash, Banknote } from "lucide-react";
 import { ConfirmationDialog } from "../shared/confirmation-dialog";
+import { cn } from "@/lib/utils";
 
 function AddPlayerForm() {
     const [newPlayerName, setNewPlayerName] = useState("");
@@ -40,22 +41,35 @@ function AddPlayerForm() {
             </CardContent>
       </Card>
     );
-  }
+}
 
-function TotalBuyIns() {
+function Totals() {
     const { players } = useGame();
     const totalBuyIns = players.reduce((total, player) => total + (player.rebuys ?? 0), 0);
+    const totalBlackCoins = players.reduce((total, player) => total + (player.blackCoins ?? 0), 0);
+    const totalsMatch = totalBuyIns === totalBlackCoins;
 
     return (
-        <Card className="bg-secondary">
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><DollarSign /> Total Buy-ins</CardTitle>
-                <CardDescription>The total number of buy-ins from all players.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <p className="text-5xl font-bold">{totalBuyIns}</p>
-            </CardContent>
-        </Card>
+        <>
+            <Card className={cn("transition-colors", !totalsMatch && "bg-destructive/10 border-destructive")}>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><DollarSign /> Total Buy-ins</CardTitle>
+                    <CardDescription>The total number of buy-ins from all players.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p className={cn("text-5xl font-bold transition-colors", !totalsMatch && "text-destructive")}>{totalBuyIns}</p>
+                </CardContent>
+            </Card>
+             <Card className={cn("transition-colors", !totalsMatch && "bg-destructive/10 border-destructive")}>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Banknote /> Total to Bank</CardTitle>
+                    <CardDescription>The total of all players&apos; black coins.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p className={cn("text-5xl font-bold transition-colors", !totalsMatch && "text-destructive")}>{totalBlackCoins}</p>
+                </CardContent>
+            </Card>
+        </>
     );
 }
 
@@ -98,9 +112,9 @@ export function DealerView() {
     <div className="space-y-8">
         <h1 className="text-4xl font-bold font-headline">Dealer Dashboard</h1>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           <AddPlayerForm />
-          <TotalBuyIns />
+          <Totals />
           <ResetGame />
         </div>
       
