@@ -46,13 +46,20 @@ export function RoleSelector() {
     const trimmedName = playerName.trim();
     if (trimmedName) {
       const existingPlayer = getPlayerByName(trimmedName);
-      if (existingPlayer && existingPlayer.name.toLowerCase() !== (savedPlayerName ?? '').toLowerCase()) {
-        toast({
-          title: 'Player already exists',
-          description: `A player named ${trimmedName} is already at the table. Please choose a different name.`,
-          variant: 'destructive',
-        });
-        return;
+      // This check is to prevent creating a new player if one already exists with a different case,
+      // but should allow a player to log in as themselves.
+      if (existingPlayer && (!savedPlayerName || trimmedName.toLowerCase() !== savedPlayerName.toLowerCase())) {
+         const isPredefinedPlayer = PREDEFINED_PLAYERS.some(p => p.toLowerCase() === trimmedName.toLowerCase());
+         const isJoiningAsSelf = savedPlayerName && trimmedName.toLowerCase() === savedPlayerName.toLowerCase();
+
+         if (!isJoiningAsSelf) {
+            toast({
+                title: 'Player already exists',
+                description: `A player named ${trimmedName} is already at the table. Please choose a different name if you are a new player.`,
+                variant: 'destructive',
+            });
+            return;
+         }
       }
       
       try {
