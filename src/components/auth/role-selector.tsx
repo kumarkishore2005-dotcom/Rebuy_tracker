@@ -19,12 +19,12 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const PLAYER_NAME_KEY = "poker_player_name";
+const PREDEFINED_PLAYERS = ["Ramki", "Mallik", "Srikanth M", "Kumar", "Nagesh", "Siva", "Tom", "Anil", "Shashank"];
 
 export function RoleSelector() {
   const [playerName, setPlayerName] = useState("");
   const [savedPlayerName, setSavedPlayerName] = useState<string | null>(null);
   const router = useRouter();
-  const { players } = useGame();
 
   useEffect(() => {
     try {
@@ -111,35 +111,33 @@ export function RoleSelector() {
             />
           </div>
 
-          {players && players.length > 0 && (
-            <div className="space-y-2">
-                <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t border-white/20" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-card px-2 text-primary-foreground/60">
-                        Or select existing
-                        </span>
-                    </div>
-                </div>
-                <Select onValueChange={(value) => setPlayerName(value)}>
-                    <SelectTrigger className="bg-background/80 text-foreground">
-                        <div className="flex items-center gap-2">
-                            <Users className="h-4 w-4 text-muted-foreground" />
-                            <SelectValue placeholder="Select from players at the table..." />
-                        </div>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <ScrollArea className="h-48">
-                        {players.map(p => (
-                            <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>
-                        ))}
-                      </ScrollArea>
-                    </SelectContent>
-                </Select>
-            </div>
-          )}
+          <div className="space-y-2">
+              <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t border-white/20" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-card px-2 text-primary-foreground/60">
+                      Or select existing
+                      </span>
+                  </div>
+              </div>
+              <Select onValueChange={(value) => setPlayerName(value)}>
+                  <SelectTrigger className="bg-background/80 text-foreground">
+                      <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                          <SelectValue placeholder="Select from players at the table..." />
+                      </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <ScrollArea className="h-48">
+                      {PREDEFINED_PLAYERS.map(p => (
+                          <SelectItem key={p} value={p}>{p}</SelectItem>
+                      ))}
+                    </ScrollArea>
+                  </SelectContent>
+              </Select>
+          </div>
 
           <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={!playerName.trim()}>
             Join Game
