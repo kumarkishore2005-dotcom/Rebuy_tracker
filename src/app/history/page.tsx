@@ -14,6 +14,8 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { Timestamp } from 'firebase/firestore';
 
+export const dynamic = 'force-dynamic';
+
 interface GamePlayer {
     name: string;
     buyIns: number;
