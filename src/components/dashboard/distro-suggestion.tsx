@@ -16,6 +16,7 @@ interface DistroSuggestionProps {
 function PlayerBalances({ players }: { players: Player[] }) {
     const balances = useMemo(() => {
         return players.map(p => ({
+            id: p.id,
             name: p.name,
             balance: p.blackCoins - (p.rebuys ?? 0)
         })).sort((a,b) => b.balance - a.balance);
@@ -26,7 +27,7 @@ function PlayerBalances({ players }: { players: Player[] }) {
              <h4 className="text-sm font-medium text-muted-foreground">Final Counts</h4>
             <ul className="space-y-2">
                 {balances.map(p => (
-                    <li key={p.name} className="flex items-center justify-between text-sm">
+                    <li key={p.id} className="flex items-center justify-between text-sm">
                         <span className="flex items-center gap-2">
                             <User className="h-4 w-4 text-muted-foreground" />
                             {p.name}

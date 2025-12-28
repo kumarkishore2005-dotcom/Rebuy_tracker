@@ -134,8 +134,8 @@ export function RoleSelector() {
                   </SelectTrigger>
                   <SelectContent>
                     <ScrollArea className="h-48">
-                      {PREDEFINED_PLAYERS.map(p => (
-                          <SelectItem key={p} value={p}>{p}</SelectItem>
+                      {PREDEFINED_PLAYERS.map((p, index) => (
+                          <SelectItem key={`${p}-${index}`} value={p}>{p}</SelectItem>
                       ))}
                     </ScrollArea>
                   </SelectContent>
