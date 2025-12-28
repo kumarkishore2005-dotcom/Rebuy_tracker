@@ -68,11 +68,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (didInitAuth.current) return;
-    if (auth && !user && !isAuthLoading) {
+    // Ensure services are available before attempting to sign in
+    if (auth && firestore && !user && !isAuthLoading) {
       didInitAuth.current = true;
       initiateAnonymousSignIn(auth);
     }
-  }, [auth, user, isAuthLoading]);
+  }, [auth, firestore, user, isAuthLoading]);
 
   /* ---------- collection ---------- */
   const playersColRef = useMemo(() => {
@@ -270,7 +271,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<GameContextType>(
     () => ({
-      players,
+      players: players || [], // Ensure players is always an array
       isLoading: isAuthLoading || isPlayersLoading,
       createPlayer,
       deletePlayer,

@@ -24,7 +24,7 @@ function PlayerPageContent() {
 
   // Attempt to get the player from the current state. This will be undefined
   // until the data loads from Firestore.
-  const player = players.find(p => p.name === name);
+  const player = players?.find(p => p.name === name);
 
   if (!name) {
     return (
