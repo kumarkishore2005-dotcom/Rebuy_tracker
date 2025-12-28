@@ -97,15 +97,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   
   const findOrCreatePlayer = useCallback(async (name: string): Promise<void> => {
     if (!firestore || !playersColRef || !name) return;
-    
-    // Check local state first for immediate feedback
-    const localPlayer = players.find(p => p.name.toLowerCase() === name.toLowerCase());
-    if (localPlayer) {
-      console.log(`Player ${name} already exists in local state.`);
-      return;
-    }
   
-    // If not in local state, query Firestore to be sure.
     const q = query(playersColRef, where("name", "==", name));
     const querySnapshot = await getDocsFirestore(q);
 
@@ -125,8 +117,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
             hasPendingRebuyRequest: false,
         };
         
-        await addDoc(playersColRef, newPlayer);
-        console.log(`Player ${name} creation complete.`);
+        const docRef = await addDoc(playersColRef, newPlayer);
+        console.log(`Player ${name} created with ID: ${docRef.id}`);
 
     } catch (error) {
         console.error("Error creating player:", error);
@@ -138,7 +130,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
             errorEmitter.emit('permission-error', permissionError);
         }
     }
-  }, [firestore, playersColRef, players]);
+  }, [firestore, playersColRef]);
 
 
   const deletePlayer = useCallback(
