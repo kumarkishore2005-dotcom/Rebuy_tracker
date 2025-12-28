@@ -93,29 +93,27 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (!firestore || !playersColRef || !name) return;
   
     const q = query(playersColRef, where("name", "==", name));
-    const querySnapshot = await getDocsFirestore(q);
-
-    if (!querySnapshot.empty) {
-        console.log(`Player ${name} already exists in Firestore.`);
-        return;
-    }
-
-    console.log(`Player ${name} does not exist. Creating...`);
+    
     try {
-        const now = Timestamp.now();
-        const newPlayer: Omit<Player, 'id'> = {
-            name,
-            rebuyTimestamps: [now],
-            blackCoins: 0,
-            createdAt: now,
-            hasPendingRebuyRequest: false,
-        };
-        
-        const docRef = await addDoc(playersColRef, newPlayer);
-        console.log(`Player ${name} created with ID: ${docRef.id}`);
+      const querySnapshot = await getDocsFirestore(q);
+
+      if (!querySnapshot.empty) {
+          return;
+      }
+
+      const now = Timestamp.now();
+      const newPlayer: Omit<Player, 'id'> = {
+          name,
+          rebuyTimestamps: [now],
+          blackCoins: 0,
+          createdAt: now,
+          hasPendingRebuyRequest: false,
+      };
+      
+      await addDoc(playersColRef, newPlayer);
 
     } catch (error) {
-        console.error("Error creating player:", error);
+        console.error("Error finding or creating player:", error);
         if (error instanceof Error && 'code' in error && (error as any).code === 'permission-denied') {
              const permissionError = new FirestorePermissionError({
                 path: playersColRef.path,

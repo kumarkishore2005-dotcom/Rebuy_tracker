@@ -20,6 +20,7 @@ import { ConfirmationDialog } from "../shared/confirmation-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import type { Timestamp } from "firebase/firestore";
+import type { Player } from "@/lib/types";
 
 interface PlayerListProps {
   isDealer?: boolean;
@@ -88,17 +89,21 @@ function RebuyTooltip({ timestamps }: { timestamps: Timestamp[] }) {
     );
   }
 
+function isPlayer(obj: any): obj is Player {
+    return obj && typeof obj === 'object' && 'id' in obj && 'name' in obj && 'rebuyTimestamps' in obj;
+}
+
 export function PlayerList({ isDealer = false, highlightPlayerName }: PlayerListProps) {
   const { players, addRebuy, removeRebuy, deletePlayer, updateBlackCoins, isLoading, approveRebuy } = useGame();
 
   const sortedPlayers = useMemo(() => {
-    if (!players) return [];
+    const validPlayers = players.filter(isPlayer);
     if (isDealer) {
       // For the dealer, sort by creation time to keep the list static
-      return [...players].sort((a, b) => a.createdAt.toMillis() - b.createdAt.toMillis());
+      return [...validPlayers].sort((a, b) => a.createdAt.toMillis() - b.createdAt.toMillis());
     }
     // For players, sort by rebuys to show standings
-    return [...players].sort((a, b) => (b.rebuyTimestamps?.length ?? 0) - (a.rebuyTimestamps?.length ?? 0));
+    return [...validPlayers].sort((a, b) => (b.rebuyTimestamps?.length ?? 0) - (a.rebuyTimestamps?.length ?? 0));
   }, [players, isDealer]);
 
   if (isLoading) {
