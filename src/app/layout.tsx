@@ -32,9 +32,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       >
         <FirebaseClientProvider>
           <GameProvider>
-            {children}
-            <Toaster />
-            <SyncStatusIndicator />
+            <>
+              {children}
+              <Toaster />
+              <SyncStatusIndicator />
+            </>
           </GameProvider>
         </FirebaseClientProvider>
       </body>
