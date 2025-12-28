@@ -21,6 +21,7 @@ import {
   deleteDoc,
   CollectionReference,
   getDoc,
+  getDocs,
 } from 'firebase/firestore';
 import {
   useFirestore,
@@ -56,7 +57,7 @@ const normalizeName = (name: string) =>
 
 /* ------------------ provider ------------------ */
 
-export function GameProvider({ children }: { children: ReactNode }) {
+export function GameProvider({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
   const auth = useAuth();
   const { user, isUserLoading: isAuthLoading } = useFirebaseUser();
@@ -149,19 +150,39 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const deleteAllPlayers = useCallback(async () => {
     if (!firestore || !playersColRef) return;
 
-    const batch = writeBatch(firestore);
-    players.forEach(p => {
-      batch.delete(doc(playersColRef, p.id));
-    });
+    try {
+        const batch = writeBatch(firestore);
+        const q = query(playersColRef);
+        const snapshot = await getDocs(q);
 
-    await batch.commit();
+        if (snapshot.empty) {
+            toast({
+                title: 'No Players to Remove',
+                description: 'The game table is already empty.',
+            });
+            return;
+        }
 
-    toast({
-      title: 'Game Reset',
-      description: 'All players have been removed.',
-      variant: 'destructive',
-    });
-  }, [firestore, playersColRef, players, toast]);
+        snapshot.docs.forEach(pDoc => {
+            batch.delete(pDoc.ref);
+        });
+
+        await batch.commit();
+
+        toast({
+            title: 'Game Reset',
+            description: 'All players have been removed from the table.',
+            variant: 'destructive',
+        });
+    } catch (err) {
+        console.error("Error deleting all players:", err);
+        const permissionError = new FirestorePermissionError({
+            path: playersColRef.path,
+            operation: 'list', // The failure could be on getDocs (list)
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    }
+}, [firestore, playersColRef, toast]);
 
   const addRebuy = useCallback(
     async (id: string) => {
