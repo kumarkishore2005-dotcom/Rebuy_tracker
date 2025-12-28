@@ -10,14 +10,15 @@ function PlayerPageContent() {
   const name = searchParams.get('name');
   const { findOrCreatePlayer, getPlayerByName, isLoading } = useGame();
 
+  // This effect ensures the player is created if they don't exist.
+  // It runs when the component mounts or the player name changes.
   useEffect(() => {
-    // This effect ensures the player is created if they don't exist.
-    // It runs when the component mounts with a valid name.
     if (name) {
       findOrCreatePlayer(name);
     }
   }, [name, findOrCreatePlayer]);
 
+  // If the page is loaded without a name, prompt the user to go back.
   if (!name) {
     return (
       <div className="flex-1 flex items-center justify-center text-center py-10">
@@ -34,8 +35,9 @@ function PlayerPageContent() {
   // Attempt to get the player from the current game state
   const player = getPlayerByName(name);
   
-  // If the game data is still loading from Firestore OR if the specific player 
-  // hasn't been found/created in the local state yet, show the loading screen.
+  // If the main game data is still loading from Firestore, OR if the specific player 
+  // for this page hasn't been found/created in the local state yet, show the loading screen.
+  // This provides a robust loading state before rendering the player's view.
   if (isLoading || !player) {
     return (
       <div className="flex-1 flex items-center justify-center text-center py-10">
