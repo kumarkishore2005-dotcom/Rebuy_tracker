@@ -24,11 +24,10 @@ import {
   getDocs,
 } from 'firebase/firestore';
 import {
-  useFirestore,
+  useFirebase,
   useCollection,
-  useAuth,
   initiateAnonymousSignIn,
-  useUser as useFirebaseUser,
+  useUser,
 } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import type { Player } from '@/lib/types';
@@ -58,9 +57,7 @@ const normalizeName = (name: string) =>
 /* ------------------ provider ------------------ */
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
-  const firestore = useFirestore();
-  const auth = useAuth();
-  const { user, isUserLoading: isAuthLoading } = useFirebaseUser();
+  const { firestore, auth, user, isUserLoading: isAuthLoading } = useFirebase();
   const { toast } = useToast();
 
   /* ---------- auth init (strict-mode safe) ---------- */
