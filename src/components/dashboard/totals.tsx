@@ -36,7 +36,7 @@ export function Totals() {
                             <DollarSign className="h-4 w-4" />
                             Total Buy-ins
                         </div>
-                        <p className={cn("text-4xl font-bold transition-colors", !totalsMatch && "text-destructive")}>{totalBuyIns}</p>
+                        <p className={cn("text-4xl font-bold transition-colors", !totalsMatch && "text-destructive")}>{totalBuyIns.toFixed(2)}</p>
                     </div>
                     <div>
                         <p className="text-sm text-muted-foreground">Total Pot</p>
@@ -49,7 +49,7 @@ export function Totals() {
                         <Banknote className="h-4 w-4" />
                         Total Black Coins (to Bank)
                     </div>
-                    <p className={cn("text-4xl font-bold transition-colors", !totalsMatch && "text-destructive")}>{totalBlackCoins}</p>
+                    <p className={cn("text-4xl font-bold transition-colors", !totalsMatch && "text-destructive")}>{totalBlackCoins.toFixed(2)}</p>
                 </div>
             </CardContent>
         </Card>
