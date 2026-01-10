@@ -149,35 +149,50 @@ export function PlayerList({ isDealer = false, highlightPlayerName }: PlayerList
                     <TableCell>
                       <div className="flex items-center justify-center gap-2">
                         {player.hasPendingRebuyRequest ? (
-                            <Button
-                                size="sm"
-                                onClick={() => approveRebuy(player.id)}
-                                aria-label={`Approve re-buy for ${player.name}`}
-                                className="bg-green-600 hover:bg-green-700 text-white"
+                            <ConfirmationDialog
+                              title={`Approve Re-buy for ${player.name}?`}
+                              description="This will add one re-buy to the player's total and clear their request."
+                              onConfirm={() => approveRebuy(player.id)}
                             >
-                                <CheckCircle className="h-5 w-5 md:mr-2" />
-                                <span className="hidden md:inline">Approve</span>
-                            </Button>
+                              <Button
+                                  size="sm"
+                                  aria-label={`Approve re-buy for ${player.name}`}
+                                  className="bg-green-600 hover:bg-green-700 text-white"
+                              >
+                                  <CheckCircle className="h-5 w-5 md:mr-2" />
+                                  <span className="hidden md:inline">Approve</span>
+                              </Button>
+                            </ConfirmationDialog>
                         ) : (
+                          <ConfirmationDialog
+                            title={`Add Re-buy for ${player.name}?`}
+                            description="Are you sure you want to manually add a re-buy for this player?"
+                            onConfirm={() => addRebuy(player.id)}
+                          >
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => addRebuy(player.id)}
                                 aria-label={`Add re-buy for ${player.name}`}
                             >
                                 <PlusCircle className="h-5 w-5 text-green-600" />
                             </Button>
+                          </ConfirmationDialog>
                         )}
-
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeRebuy(player.id)}
-                          aria-label={`Remove re-buy for ${player.name}`}
-                          disabled={(player.rebuyTimestamps?.length ?? 0) <= 1}
+                        <ConfirmationDialog
+                          title={`Remove Last Re-buy from ${player.name}?`}
+                          description="This will remove the most recent buy-in. This action should be used to correct mistakes."
+                          onConfirm={() => removeRebuy(player.id)}
+                          confirmText="Yes, Remove"
                         >
-                          <MinusCircle className="h-5 w-5" />
-                        </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label={`Remove re-buy for ${player.name}`}
+                            disabled={(player.rebuyTimestamps?.length ?? 0) <= 1}
+                          >
+                            <MinusCircle className="h-5 w-5" />
+                          </Button>
+                        </ConfirmationDialog>
                         
                         <ConfirmationDialog
                           title="Delete Player?"
