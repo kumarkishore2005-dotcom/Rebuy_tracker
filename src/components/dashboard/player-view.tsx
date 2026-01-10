@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { PlayerList } from "./player-list";
 import { Users, Clock, PlusCircle } from "lucide-react";
 import { Skeleton } from "../ui/skeleton";
+import { ConfirmationDialog } from "../shared/confirmation-dialog";
 
 interface PlayerViewProps {
   playerName: string;
@@ -92,10 +93,16 @@ export function PlayerView({ playerName }: PlayerViewProps) {
                 Request Pending...
              </Button>
           ) : (
-            <Button onClick={handleRebuyRequest} size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
-                <PlusCircle className="mr-2 h-5 w-5" />
-                Request Re-buy
-            </Button>
+            <ConfirmationDialog
+              title="Confirm Re-buy Request"
+              description="Are you sure you want to request a re-buy? The dealer will be notified."
+              onConfirm={handleRebuyRequest}
+            >
+              <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
+                  <PlusCircle className="mr-2 h-5 w-5" />
+                  Request Re-buy
+              </Button>
+            </ConfirmationDialog>
           )}
         </CardContent>
       </Card>

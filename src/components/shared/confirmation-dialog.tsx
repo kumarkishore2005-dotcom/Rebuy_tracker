@@ -12,12 +12,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Button } from "../ui/button";
 
 interface ConfirmationDialogProps {
   children: React.ReactNode;
   title: string;
   description: string;
   onConfirm: () => void;
+  confirmText?: string;
+  cancelText?: string;
 }
 
 export function ConfirmationDialog({
@@ -25,6 +28,8 @@ export function ConfirmationDialog({
   title,
   description,
   onConfirm,
+  confirmText = "Yes",
+  cancelText = "No",
 }: ConfirmationDialogProps) {
   return (
     <AlertDialog>
@@ -37,9 +42,11 @@ export function ConfirmationDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm} className="bg-destructive hover:bg-destructive/90">
-            Confirm
+          <AlertDialogCancel asChild>
+            <Button variant="outline">{cancelText}</Button>
+          </AlertDialogCancel>
+          <AlertDialogAction onClick={onConfirm} asChild>
+            <Button>{confirmText}</Button>
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
