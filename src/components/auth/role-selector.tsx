@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,15 +16,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useGame } from "@/contexts/game-context";
 
 const PLAYER_NAME_KEY = "poker_player_name";
-const PREDEFINED_PLAYERS = ["Ramki", "Mallik", "Srikanth M", "Kumar", "Nagesh", "Siva", "Tom", "Anil", "Shashank"];
 
-// RoleSelector now needs tableId to construct the correct URL
-export function RoleSelector({ tableId }: { tableId: string }) {
+// This component now directs to the global /player and /dealer pages
+export function RoleSelector() {
   const [playerName, setPlayerName] = useState("");
   const [savedPlayerName, setSavedPlayerName] = useState<string | null>(null);
   const router = useRouter();
+  const { players } = useGame();
+
+  const predefinedPlayers = useMemo(() => {
+    const names = ["Ramki", "Mallik", "Srikanth M", "Kumar", "Nagesh", "Siva", "Tom", "Anil", "Shashank"];
+    const playerNames = new Set(players.map(p => p.name));
+    names.forEach(name => playerNames.add(name));
+    return Array.from(playerNames).sort();
+  }, [players]);
+
 
   useEffect(() => {
     try {
@@ -47,19 +56,19 @@ export function RoleSelector({ tableId }: { tableId: string }) {
       } catch (e) {
         console.error("Could not set item in localStorage.", e);
       }
-      // Navigate to the player page for the specific table
-      router.push(`/table/${tableId}/player?name=${encodeURIComponent(trimmedName)}`);
+      // Navigate to the global player page
+      router.push(`/player?name=${encodeURIComponent(trimmedName)}`);
     }
   };
   
   const handleDealerJoin = () => {
-    // Navigate to the dealer page for the specific table
-    router.push(`/table/${tableId}/dealer`);
+    // Navigate to the global dealer page
+    router.push(`/dealer`);
   };
 
   const handleResumeSession = () => {
     if (savedPlayerName) {
-      router.push(`/table/${tableId}/player?name=${encodeURIComponent(savedPlayerName)}`);
+      router.push(`/player?name=${encodeURIComponent(savedPlayerName)}`);
     }
   };
 
@@ -129,12 +138,12 @@ export function RoleSelector({ tableId }: { tableId: string }) {
                   <SelectTrigger className="bg-background/80 text-foreground">
                       <div className="flex items-center gap-2">
                           <Users className="h-4 w-4 text-muted-foreground" />
-                          <SelectValue placeholder="Select from players at the table..." />
+                          <SelectValue placeholder="Select from players..." />
                       </div>
                   </SelectTrigger>
                   <SelectContent>
                     <ScrollArea className="h-48">
-                      {PREDEFINED_PLAYERS.map((p) => (
+                      {predefinedPlayers.map((p) => (
                           <SelectItem key={p} value={p}>{p}</SelectItem>
                       ))}
                     </ScrollArea>

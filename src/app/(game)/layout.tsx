@@ -4,6 +4,7 @@ import { AppHeader } from '@/components/dashboard/app-header';
 import { Suspense, useEffect } from 'react';
 import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
+import { GameProvider } from '@/contexts/game-context';
 
 function GameLayoutContent({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
@@ -12,7 +13,7 @@ function GameLayoutContent({ children }: { children: React.ReactNode }) {
   // Wait for Firebase auth to load
   useEffect(() => {
     if (!isUserLoading && !user) {
-      router.replace('/joining-game'); // Redirect if not logged in
+      router.replace('/'); // Redirect if not logged in
     }
   }, [user, isUserLoading, router]);
 
@@ -53,8 +54,10 @@ export default function GameLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col min-h-screen">
-      <GameLayoutContent>{children}</GameLayoutContent>
-    </div>
+    <GameProvider>
+      <div className="flex flex-col min-h-screen">
+        <GameLayoutContent>{children}</GameLayoutContent>
+      </div>
+    </GameProvider>
   );
 }

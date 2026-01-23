@@ -1,9 +1,8 @@
 /**
  * @fileoverview Firestore Security Rules for the Poker Game application.
  *
- * This ruleset secures a multi-table poker game application.
- * Data is structured with a top-level 'tables' collection, where each table
- * document can contain a 'players' subcollection.
+ * This ruleset secures a poker game application.
+ * Data is structured with a top-level 'players' collection.
  *
  * Key Security Decisions:
  * - Authenticated Access Only: All database operations (read, write, create, delete)
@@ -14,15 +13,10 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    match /tables/{tableId} {
-      // Allow signed-in users to read and write tables.
+    // Rules for the top-level 'players' collection.
+    match /players/{playerId} {
+      // Allow any signed-in user to read and write player data.
       allow read, write: if request.auth != null;
-
-      // Rules for the 'players' subcollection within each table.
-      match /players/{playerId} {
-        // Allow signed-in users to read and write player data.
-        allow read, write: if request.auth != null;
-      }
     }
   }
 }

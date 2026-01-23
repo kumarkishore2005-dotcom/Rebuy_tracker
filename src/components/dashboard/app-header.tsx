@@ -8,7 +8,7 @@ import { LogOut, User, UserCog } from "lucide-react";
 
 const PLAYER_NAME_KEY = "poker_player_name";
 
-export function AppHeader({ tableId }: { tableId: string }) {
+export function AppHeader() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -30,7 +30,7 @@ export function AppHeader({ tableId }: { tableId: string }) {
             console.error("Could not remove item from sessionStorage.", e);
         }
     }
-    // Go back to the main table selection page
+    // Go back to the main home page
     router.push('/');
   };
   

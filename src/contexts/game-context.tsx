@@ -32,9 +32,8 @@ import type { Player } from '@/lib/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
-// This context is now for a SINGLE table
+// This context is for a SINGLE game
 export interface GameContextType {
-    tableId: string;
     players: Player[];
     isLoading: boolean;
     isReady: boolean;
@@ -55,10 +54,9 @@ const normalizeName = (name: string) =>
 
 interface GameProviderProps {
     children: React.ReactNode;
-    tableId: string;
 }
 
-export function GameProvider({ children, tableId }: GameProviderProps) {
+export function GameProvider({ children }: GameProviderProps) {
     const { firestore, auth, user, isUserLoading: isAuthLoading } = useFirebase();
     const { toast } = useToast();
     const didInitAuth = useRef(false);
@@ -72,14 +70,13 @@ export function GameProvider({ children, tableId }: GameProviderProps) {
     }, [auth, firestore, user, isAuthLoading]);
 
     const playersColRef = useMemo(() => {
-        if (!firestore || !user || !tableId) return null;
+        if (!firestore || !user) return null;
+        // Points to the top-level 'players' collection
         return collection(
             firestore,
-            'tables',
-            tableId,
             'players'
         ) as CollectionReference<Omit<Player, 'id'>>;
-    }, [firestore, user, tableId]);
+    }, [firestore, user]);
 
     const { data: players = [], isLoading: isPlayersLoading } =
         useCollection<Player>(playersColRef);
@@ -111,13 +108,13 @@ export function GameProvider({ children, tableId }: GameProviderProps) {
             } catch (err) {
                 console.error('Error creating player:', err);
                 errorEmitter.emit('permission-error', new FirestorePermissionError({
-                    path: `tables/${tableId}/players/${normalizeName(name)}`,
+                    path: `players/${normalizeName(name)}`,
                     operation: 'create',
                     requestResourceData: { name },
                 }));
             }
         },
-        [firestore, playersColRef, toast, tableId]
+        [firestore, playersColRef, toast]
     );
 
     const deletePlayer = useCallback(
@@ -146,12 +143,12 @@ export function GameProvider({ children, tableId }: GameProviderProps) {
             const batch = writeBatch(firestore);
             const snapshot = await getDocs(query(playersColRef));
             if (snapshot.empty) {
-                toast({ title: 'No Players to Remove', description: 'The game table is already empty.' });
+                toast({ title: 'No Players to Remove', description: 'The game is already empty.' });
                 return;
             }
             snapshot.docs.forEach(pDoc => batch.delete(pDoc.ref));
             await batch.commit();
-            toast({ title: 'Game Reset', description: 'All players have been removed from the table.', variant: 'destructive' });
+            toast({ title: 'Game Reset', description: 'All players have been removed from the game.', variant: 'destructive' });
         } catch (err) {
             console.error('Error deleting all players:', err);
             errorEmitter.emit('permission-error', new FirestorePermissionError({ path: playersColRef.path, operation: 'list' }));
@@ -212,7 +209,6 @@ export function GameProvider({ children, tableId }: GameProviderProps) {
 
     const value = useMemo<GameContextType>(
         () => ({
-            tableId,
             players: players || [],
             isLoading: isAuthLoading || isPlayersLoading,
             isReady: !!playersColRef && !!user && !isAuthLoading,
@@ -226,7 +222,6 @@ export function GameProvider({ children, tableId }: GameProviderProps) {
             approveRebuy,
         }),
         [
-            tableId,
             players,
             playersColRef,
             user,
@@ -249,7 +244,7 @@ export function GameProvider({ children, tableId }: GameProviderProps) {
 export function useGame() {
     const ctx = useContext(GameContext);
     if (!ctx) {
-        throw new Error('useGame must be used within a GameProvider that has a tableId');
+        throw new Error('useGame must be used within a GameProvider');
     }
     return ctx;
 }
