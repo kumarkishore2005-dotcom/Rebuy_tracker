@@ -8,7 +8,7 @@ import { LogOut, User, UserCog } from "lucide-react";
 
 const PLAYER_NAME_KEY = "poker_player_name";
 
-export function AppHeader() {
+export function AppHeader({ tableId }: { tableId: string }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -16,7 +16,6 @@ export function AppHeader() {
   const isDealer = pathname.includes('/dealer');
   
   const handleExit = () => {
-    // If the user is a player, clear their saved name on exit.
     if (name) {
       try {
         localStorage.removeItem(PLAYER_NAME_KEY);
@@ -24,7 +23,6 @@ export function AppHeader() {
         console.error("Could not remove item from localStorage.", e);
       }
     }
-    // Also clear the dealer session if they exit
     if (isDealer) {
         try {
             sessionStorage.removeItem('dealerAuthenticated');
@@ -32,6 +30,7 @@ export function AppHeader() {
             console.error("Could not remove item from sessionStorage.", e);
         }
     }
+    // Go back to the main table selection page
     router.push('/');
   };
   

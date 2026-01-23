@@ -1,37 +1,33 @@
 /**
  * @fileoverview Firestore Security Rules for the Poker Game application.
  *
- * Core Philosophy:
- * This ruleset prioritizes simplicity, security and data access control by leveraging the Firebase Authentication state (`request.auth`).
- * It focuses on securing read and write access to a public collection of `players`. All users, including unauthenticated ones, can read `players` collection, but only authenticated users can create, update or delete player information.
- *
- * Data Structure:
- * The Firestore database contains one top-level collection:
- * - `/players/{playerId}`: Stores individual player profiles for the live game.
+ * This ruleset secures a multi-table poker game application.
+ * Data is structured with a top-level 'tables' collection, where each table
+ * document can contain a 'players' subcollection.
  *
  * Key Security Decisions:
- * - Public Read Access: All users, including unauthenticated users, can read all documents in the `players` collection.
- * - Authenticated Writes: Only authenticated users can create, update, and delete documents.
- *
- * Denormalization for Authorization:
- * - The `Player` documents are assumed to contain all the necessary information for authorization.
+ * - Public Read Access: All users (authenticated or not) can read table and player data.
+ *   This is suitable for a non-sensitive game where standings are public.
+ * - Authenticated Writes: Only authenticated users (via anonymous auth) can create,
+ *   update, or delete tables and players. This prevents unauthorized modification
+ *   of game state.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * @description Allows anyone to read player data, but only authenticated users to write.
-     * @path /players/{playerId}
-     * @allow (read): Anyone can read player data.
-     * @allow (write): Authenticated user can write player data.
-     */
-    match /players/{playerId} {
+    match /tables/{tableId} {
+      // Allow anyone to see the list of tables, but only signed-in users to create/delete them.
       allow read: if true;
       allow write: if isSignedIn();
-    }
 
-    // ---- Helper functions ----
+      // Rules for the 'players' subcollection within each table.
+      match /players/{playerId} {
+        // Allow anyone to read player data, but only signed-in users to modify it.
+        allow read: if true;
+        allow write: if isSignedIn();
+      }
+    }
 
     /**
      * @description Checks if the user is signed in.

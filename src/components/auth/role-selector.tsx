@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, UserCog, History, Users } from "lucide-react";
-import { useGame } from "@/contexts/game-context";
 import {
   Select,
   SelectContent,
@@ -17,16 +16,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useToast } from "@/hooks/use-toast";
 
 const PLAYER_NAME_KEY = "poker_player_name";
 const PREDEFINED_PLAYERS = ["Ramki", "Mallik", "Srikanth M", "Kumar", "Nagesh", "Siva", "Tom", "Anil", "Shashank"];
 
-export function RoleSelector() {
+// RoleSelector now needs tableId to construct the correct URL
+export function RoleSelector({ tableId }: { tableId: string }) {
   const [playerName, setPlayerName] = useState("");
   const [savedPlayerName, setSavedPlayerName] = useState<string | null>(null);
   const router = useRouter();
-  const { toast } = useToast();
 
   useEffect(() => {
     try {
@@ -49,17 +47,19 @@ export function RoleSelector() {
       } catch (e) {
         console.error("Could not set item in localStorage.", e);
       }
-      router.push(`/player?name=${encodeURIComponent(trimmedName)}`);
+      // Navigate to the player page for the specific table
+      router.push(`/table/${tableId}/player?name=${encodeURIComponent(trimmedName)}`);
     }
   };
   
   const handleDealerJoin = () => {
-    router.push('/dealer');
+    // Navigate to the dealer page for the specific table
+    router.push(`/table/${tableId}/dealer`);
   };
 
   const handleResumeSession = () => {
     if (savedPlayerName) {
-      router.push(`/player?name=${encodeURIComponent(savedPlayerName)}`);
+      router.push(`/table/${tableId}/player?name=${encodeURIComponent(savedPlayerName)}`);
     }
   };
 

@@ -9,3 +9,10 @@ export type Player = {
   rebuyTimestamps: Timestamp[];
   hasPendingRebuyRequest: boolean;
 };
+
+export type Table = {
+  id: string;
+  name: string;
+  createdAt: Timestamp;
+  playerCount?: number; // Optional: can be computed on the client
+};

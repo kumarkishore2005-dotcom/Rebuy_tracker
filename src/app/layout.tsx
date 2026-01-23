@@ -4,7 +4,6 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import { FirebaseClientProvider } from "@/firebase";
-import { GameProvider } from "@/contexts/game-context";
 import { SyncStatusIndicator } from "@/components/shared/sync-status-indicator";
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
@@ -32,14 +31,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         suppressHydrationWarning
       >
         <FirebaseClientProvider>
-          <GameProvider>
-            <>
-              {children}
-              <Toaster />
-              <SyncStatusIndicator />
-              <FirebaseErrorListener />
-            </>
-          </GameProvider>
+          <>
+            {children}
+            <Toaster />
+            <SyncStatusIndicator />
+            <FirebaseErrorListener />
+          </>
         </FirebaseClientProvider>
       </body>
     </html>
