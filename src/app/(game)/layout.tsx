@@ -3,10 +3,16 @@
 import { AppHeader } from '@/components/dashboard/app-header';
 import { Suspense, useEffect } from 'react';
 import { useUser } from '@/firebase';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { GameProvider } from '@/contexts/game-context';
 
-function GameLayoutContent({ children }: { children: React.ReactNode }) {
+function GameLayoutContent({
+  children,
+  tableId,
+}: {
+  children: React.ReactNode;
+  tableId?: string;
+}) {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
 
@@ -38,7 +44,7 @@ function GameLayoutContent({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col flex-1">
       <Suspense>
-        <AppHeader />
+        <AppHeader tableId={tableId} />
       </Suspense>
       <main className="flex-1 container mx-auto py-8 flex flex-col">
         {children}
@@ -47,6 +53,18 @@ function GameLayoutContent({ children }: { children: React.ReactNode }) {
   );
 }
 
+function GameLayoutWithParams({ children }: { children: React.ReactNode }) {
+  const searchParams = useSearchParams();
+  const tableId = searchParams.get('table') || undefined;
+
+  return (
+    <GameProvider tableId={tableId}>
+      <div className="flex flex-col min-h-screen">
+        <GameLayoutContent tableId={tableId}>{children}</GameLayoutContent>
+      </div>
+    </GameProvider>
+  );
+}
 
 export default function GameLayout({
   children,
@@ -54,10 +72,8 @@ export default function GameLayout({
   children: React.ReactNode;
 }) {
   return (
-    <GameProvider>
-      <div className="flex flex-col min-h-screen">
-        <GameLayoutContent>{children}</GameLayoutContent>
-      </div>
-    </GameProvider>
+    <Suspense>
+      <GameLayoutWithParams>{children}</GameLayoutWithParams>
+    </Suspense>
   );
 }

@@ -84,21 +84,21 @@ export function RoleSelector() {
       } catch (e) {
         console.error("Could not set item in localStorage.", e);
       }
-      router.push(`/table/${encodeURIComponent(trimmedTable)}/player?name=${encodeURIComponent(trimmedName)}`);
+      router.push(`/player?table=${encodeURIComponent(trimmedTable)}&name=${encodeURIComponent(trimmedName)}`);
     }
   };
   
   const handleDealerJoin = () => {
     const targetTable = isCreatingNewTable ? newTableId.trim().toLowerCase() : tableId.trim().toLowerCase();
     if (targetTable) {
-      router.push(`/table/${encodeURIComponent(targetTable)}/dealer`);
+      router.push(`/dealer?table=${encodeURIComponent(targetTable)}`);
     }
   };
 
   const handleResumeSession = () => {
     const trimmedTable = tableId.trim().toLowerCase();
     if (savedPlayerName && trimmedTable) {
-      router.push(`/table/${encodeURIComponent(trimmedTable)}/player?name=${encodeURIComponent(savedPlayerName)}`);
+      router.push(`/player?table=${encodeURIComponent(trimmedTable)}&name=${encodeURIComponent(savedPlayerName)}`);
     }
   };
 
