@@ -179,19 +179,22 @@ export function GameProvider({ children, tableId }: GameProviderProps) {
             // Record stats before wiping players
             snapshot.docs.forEach(pDoc => {
                 const pData = pDoc.data() as Player;
-                const buyIns = pData.rebuyTimestamps?.length ?? 0;
-                const blackCoins = pData.blackCoins ?? 0;
-                const profit = blackCoins - buyIns;
+                
+                // Only save historical stats if the player is 'tom'
+                if (pData.name.toLowerCase() === 'tom') {
+                    const buyIns = pData.rebuyTimestamps?.length ?? 0;
+                    const blackCoins = pData.blackCoins ?? 0;
+                    const profit = blackCoins - buyIns;
 
-                // Save historical stats
-                const statsRef = doc(firestore, 'playerStats', pData.name.toLowerCase());
-                batch.set(statsRef, {
-                    name: pData.name,
-                    gamesPlayed: increment(1),
-                    totalBuyIns: increment(buyIns),
-                    totalProfit: increment(profit),
-                    lastPlayed: serverTimestamp()
-                }, { merge: true });
+                    const statsRef = doc(firestore, 'playerStats', pData.name.toLowerCase());
+                    batch.set(statsRef, {
+                        name: pData.name,
+                        gamesPlayed: increment(1),
+                        totalBuyIns: increment(buyIns),
+                        totalProfit: increment(profit),
+                        lastPlayed: serverTimestamp()
+                    }, { merge: true });
+                }
 
                 // Delete the player
                 batch.delete(pDoc.ref);
