@@ -8,6 +8,7 @@ import { PlayerList } from "./player-list";
 import { Users, Clock, PlusCircle } from "lucide-react";
 import { Skeleton } from "../ui/skeleton";
 import { ConfirmationDialog } from "../shared/confirmation-dialog";
+import { DistroSuggestion } from "./distro-suggestion";
 
 interface PlayerViewProps {
   playerName: string;
@@ -116,6 +117,10 @@ export function PlayerView({ playerName }: PlayerViewProps) {
           <PlayerList highlightPlayerName={playerName} />
         </CardContent>
       </Card>
+
+      {players && players.length > 0 && (
+        <DistroSuggestion players={players} />
+      )}
     </div>
   );
 }
