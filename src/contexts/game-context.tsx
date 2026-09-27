@@ -186,6 +186,7 @@ export function GameProvider({ children, tableId }: GameProviderProps) {
                     const blackCoins = pData.blackCoins ?? 0;
                     const profit = blackCoins - buyIns;
 
+                    // 1. Keep the lifetime running total
                     const statsRef = doc(firestore, 'playerStats', pData.name.toLowerCase());
                     batch.set(statsRef, {
                         name: pData.name,
@@ -194,6 +195,15 @@ export function GameProvider({ children, tableId }: GameProviderProps) {
                         totalProfit: increment(profit),
                         lastPlayed: serverTimestamp()
                     }, { merge: true });
+
+                    // 2. Save an individual record of THIS specific game for weekly/monthly charts
+                    const logRef = doc(collection(firestore, 'gameLogs'));
+                    batch.set(logRef, {
+                        playerName: pData.name.toLowerCase(),
+                        buyIns: buyIns,
+                        profit: profit,
+                        timestamp: serverTimestamp()
+                    });
                 }
 
                 // Delete the player

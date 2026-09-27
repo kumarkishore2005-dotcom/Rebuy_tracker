@@ -32,5 +32,10 @@ service cloud.firestore {
     match /playerStats/{playerId} {
       allow read, write: if request.auth != null;
     }
+
+    // Rules for individual game logs (for weekly/monthly charts)
+    match /gameLogs/{logId} {
+      allow read, write: if request.auth != null;
+    }
   }
 }
