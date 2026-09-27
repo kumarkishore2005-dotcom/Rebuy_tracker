@@ -9,6 +9,8 @@ import { Users, Clock, PlusCircle } from "lucide-react";
 import { Skeleton } from "../ui/skeleton";
 import { ConfirmationDialog } from "../shared/confirmation-dialog";
 import { DistroSuggestion } from "./distro-suggestion";
+import { calculateSettlement } from "@/lib/settlement";
+import { Separator } from "@/components/ui/separator";
 
 interface PlayerViewProps {
   playerName: string;
@@ -75,6 +77,14 @@ export function PlayerView({ playerName }: PlayerViewProps) {
     requestRebuy(player.id);
   }
 
+  const transactions = calculateSettlement(players);
+  const totalSystemBuyIns = players.reduce((total, p) => total + (p.rebuyTimestamps?.length ?? 0), 0);
+  const totalSystemBlackCoins = players.reduce((total, p) => total + (p.blackCoins ?? 0), 0);
+  const isBalanced = totalSystemBuyIns === totalSystemBlackCoins && totalSystemBuyIns > 0;
+
+  const myDebts = transactions.filter(tx => tx.from === playerName);
+  const myCredits = transactions.filter(tx => tx.to === playerName);
+
   return (
     <div className="space-y-8">
       <h1 className="text-4xl font-bold font-headline">Welcome, {playerName}!</h1>
@@ -83,27 +93,61 @@ export function PlayerView({ playerName }: PlayerViewProps) {
         <CardHeader>
           <CardTitle>Your Status</CardTitle>
         </CardHeader>
-        <CardContent className="flex items-center justify-between">
-          <div>
-            <p className="text-sm">Total Buy-ins</p>
-            <p className="text-5xl font-bold">{totalBuyins}</p>
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-primary-foreground/80">Total Buy-ins</p>
+              <p className="text-5xl font-bold">{totalBuyins}</p>
+            </div>
+            {player.hasPendingRebuyRequest ? (
+               <Button size="lg" disabled className="bg-accent/50 text-accent-foreground">
+                  <Clock className="mr-2 h-5 w-5 animate-spin" />
+                  Request Pending...
+               </Button>
+            ) : (
+              <ConfirmationDialog
+                title="Confirm Re-buy Request"
+                description="Are you sure you want to request a re-buy? The dealer will be notified."
+                onConfirm={handleRebuyRequest}
+              >
+                <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
+                    <PlusCircle className="mr-2 h-5 w-5" />
+                    Request Re-buy
+                </Button>
+              </ConfirmationDialog>
+            )}
           </div>
-          {player.hasPendingRebuyRequest ? (
-             <Button size="lg" disabled className="bg-accent/50 text-accent-foreground">
-                <Clock className="mr-2 h-5 w-5 animate-spin" />
-                Request Pending...
-             </Button>
-          ) : (
-            <ConfirmationDialog
-              title="Confirm Re-buy Request"
-              description="Are you sure you want to request a re-buy? The dealer will be notified."
-              onConfirm={handleRebuyRequest}
-            >
-              <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
-                  <PlusCircle className="mr-2 h-5 w-5" />
-                  Request Re-buy
-              </Button>
-            </ConfirmationDialog>
+
+          {isBalanced && (myDebts.length > 0 || myCredits.length > 0) && (
+            <>
+              <Separator className="bg-primary-foreground/20" />
+              <div>
+                <p className="text-sm font-semibold mb-3 text-primary-foreground/90">Your Settlement Actions</p>
+                <div className="space-y-2">
+                  {myDebts.map((tx, idx) => (
+                    <div key={`debt-${idx}`} className="flex items-center justify-between bg-black/10 rounded-md p-3">
+                      <span className="text-sm">You pay <strong className="font-bold">{tx.to}</strong></span>
+                      <span className="font-bold">${Number(tx.amount).toFixed(2)}</span>
+                    </div>
+                  ))}
+                  {myCredits.map((tx, idx) => (
+                    <div key={`credit-${idx}`} className="flex items-center justify-between bg-black/10 rounded-md p-3">
+                      <span className="text-sm"><strong className="font-bold">{tx.from}</strong> pays you</span>
+                      <span className="font-bold">${Number(tx.amount).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+          
+          {isBalanced && myDebts.length === 0 && myCredits.length === 0 && (
+             <>
+                <Separator className="bg-primary-foreground/20" />
+                <div className="bg-black/10 rounded-md p-3 text-center text-sm font-medium">
+                   You are fully settled. No payments needed!
+                </div>
+             </>
           )}
         </CardContent>
       </Card>
