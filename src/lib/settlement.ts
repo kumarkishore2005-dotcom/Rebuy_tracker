@@ -39,7 +39,7 @@ export function calculateSettlement(players: Player[]): Transaction[] {
   while (i < creditors.length && j < debtors.length) {
     const creditor = creditors[i];
     const debtor = debtors[j];
-    const amountToSettle = Math.min(creditor.amount, debtor.amount);
+    const amountToSettle = Number(Math.min(creditor.amount, debtor.amount).toFixed(2));
 
     if (amountToSettle > 0) {
       transactions.push({
@@ -48,15 +48,15 @@ export function calculateSettlement(players: Player[]): Transaction[] {
         amount: amountToSettle,
       });
 
-      creditor.amount -= amountToSettle;
-      debtor.amount -= amountToSettle;
+      creditor.amount = Number((creditor.amount - amountToSettle).toFixed(2));
+      debtor.amount = Number((debtor.amount - amountToSettle).toFixed(2));
     }
     
-    if (creditor.amount === 0) {
+    if (creditor.amount <= 0) {
       i++;
     }
 
-    if (debtor.amount === 0) {
+    if (debtor.amount <= 0) {
       j++;
     }
   }
