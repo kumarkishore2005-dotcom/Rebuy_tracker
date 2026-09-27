@@ -42,7 +42,7 @@ function PlayerBalances({ players }: { players: Player[] }) {
                             p.balance > 0 && "text-green-600",
                             p.balance < 0 && "text-destructive",
                         )}>
-                            {p.balance > 0 && "+"}{p.balance}
+                            {p.balance > 0 && "+"}{Number(p.balance).toFixed(2)}
                         </span>
                     </li>
                 ))}
@@ -97,7 +97,7 @@ export function DistroSuggestion({ players }: DistroSuggestionProps) {
                     <span className="font-semibold text-destructive">{tx.from}</span>
                     <div className="flex items-center gap-2">
                     <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-bold text-lg">${tx.amount}</span>
+                    <span className="font-bold text-lg">${Number(tx.amount).toFixed(2)}</span>
                     <ArrowRight className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <span className="font-semibold text-green-600">{tx.to}</span>
