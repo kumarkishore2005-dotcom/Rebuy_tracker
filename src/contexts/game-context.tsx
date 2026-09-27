@@ -21,6 +21,8 @@ import {
     CollectionReference,
     getDoc,
     getDocs,
+    increment,
+    serverTimestamp,
 } from 'firebase/firestore';
 import {
     useFirebase,
@@ -173,7 +175,28 @@ export function GameProvider({ children, tableId }: GameProviderProps) {
                 toast({ title: 'No Players to Remove', description: 'The game is already empty.' });
                 return;
             }
-            snapshot.docs.forEach(pDoc => batch.delete(pDoc.ref));
+            
+            // Record stats before wiping players
+            snapshot.docs.forEach(pDoc => {
+                const pData = pDoc.data() as Player;
+                const buyIns = pData.rebuyTimestamps?.length ?? 0;
+                const blackCoins = pData.blackCoins ?? 0;
+                const profit = blackCoins - buyIns;
+
+                // Save historical stats
+                const statsRef = doc(firestore, 'playerStats', pData.name.toLowerCase());
+                batch.set(statsRef, {
+                    name: pData.name,
+                    gamesPlayed: increment(1),
+                    totalBuyIns: increment(buyIns),
+                    totalProfit: increment(profit),
+                    lastPlayed: serverTimestamp()
+                }, { merge: true });
+
+                // Delete the player
+                batch.delete(pDoc.ref);
+            });
+
             await batch.commit();
             toast({ title: 'Game Reset', description: 'All players have been removed from the game.', variant: 'destructive' });
         } catch (err) {
