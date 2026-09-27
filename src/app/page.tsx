@@ -70,12 +70,6 @@ function HomePageContent() {
             <RoleSelector />
           </CardContent>
         </Card>
-
-        <div className="text-center">
-          <Link href="/stats" className="text-primary-foreground/80 hover:text-primary-foreground underline text-sm transition-colors">
-            View Hall of Fame
-          </Link>
-        </div>
       </div>
     </main>
   );

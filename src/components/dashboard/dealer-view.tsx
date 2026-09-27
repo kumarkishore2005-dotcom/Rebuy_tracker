@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlayerList } from "./player-list";
-import { Users, Trash, XCircle } from "lucide-react";
+import { Users, Trash, XCircle, Trophy } from "lucide-react";
 import { ConfirmationDialog } from "../shared/confirmation-dialog";
 import { DistroSuggestion } from "./distro-suggestion";
 import { useToast } from "@/hooks/use-toast";
 import { Totals } from "./totals";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 function AddPlayerForm() {
     const [newPlayerName, setNewPlayerName] = useState("");
@@ -114,7 +115,15 @@ export function DealerView() {
   const { players } = useGame();
   return (
     <div className="space-y-8">
-        <h1 className="text-4xl font-bold font-headline">Dealer Dashboard</h1>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <h1 className="text-4xl font-bold font-headline">Dealer Dashboard</h1>
+            <Link href="/stats">
+                <Button variant="outline" className="flex items-center gap-2">
+                    <Trophy className="h-4 w-4 text-yellow-500" />
+                    View Hall of Fame
+                </Button>
+            </Link>
+        </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           <AddPlayerForm />
