@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useFirebase, initiateAnonymousSignIn } from '@/firebase';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -69,6 +70,12 @@ function HomePageContent() {
             <RoleSelector />
           </CardContent>
         </Card>
+
+        <div className="text-center">
+          <Link href="/stats" className="text-primary-foreground/80 hover:text-primary-foreground underline text-sm transition-colors">
+            View Hall of Fame
+          </Link>
+        </div>
       </div>
     </main>
   );
